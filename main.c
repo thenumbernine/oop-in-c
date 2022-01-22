@@ -106,6 +106,7 @@ void objType##_##funcName##_move(objType##_t * const obj) {\
 //str.h
 
 
+
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 STRUCT(str,
 	STRUCT_FIELD(str, size_t, len)		//len is the blob length (not including the \0 at the end)
@@ -113,17 +114,34 @@ STRUCT(str,
 STRUCT_REFL(str,
 	STRUCT_REFL_FIELD(str, size_t, len)
 	STRUCT_REFL_FIELD(str, char *, ptr))
+#if 0
 //TODO merge all this
 typedef size_t str_fieldType_0;
 typedef char * str_fieldType_1;
+#elif 0
+#define TEST(x) typedef x ;
+FOR_EACH(TEST, size_t str_fieldType_0, char * str_fieldType_1)
+#elif 1
 
+#define APPLY_GET_ARG1(arg, rest...)			arg
+#define APPLY_GET_ARG2(prev1, arg, rest...)		arg
+
+#define GET_ARG1(args)			APPLY_GET_ARG1 args
+#define GET_ARG2(args)			APPLY_GET_ARG2 args
+
+#define TEST(x) typedef GET_ARG1(x) GET_ARG2(x);
+FOR_EACH(TEST,
+	(size_t, str_fieldType_0),
+	(char *, str_fieldType_1)
+)
+#endif
 
 //_init is for in-place init / is the ctor
 void str_init_c(str_t * s, char const * cstr);
 void str_init(str_t * s, char const * fmt, ...);
 
-//_dtor is in-place / object dtors
-void str_dtor(str_t * s);
+//_destroy is in-place / object dtors
+void str_destroy(str_t * s);
 
 //_new calls _init for heap allocated objects
 
@@ -138,16 +156,21 @@ str_t * str_cat_move(str_t * a, str_t * b);
 
 //tostr.h
 
+//class allocator -- for returning the  memory of the class
+// c++ equiv of void * ::operator new(size_t)
 #define MAKE_ALLOC(type)\
 type##_t * type##_alloc() {\
 	return new(type##_t);\
 }
 
+// c++ equiv of void ::operator delete(void *)
 #define MAKE_FREE(type)\
 void type##_free(type##_t * const obj) {\
 	delete(obj);\
 }
 
+//c++ equiv of "new str(fmt, ...)"
+//calls _alloc and then calls _init*
 #define MAKE_NEW(type)\
 type##_t * type##_new() {\
 	type##_t * obj = type##_alloc();\
@@ -155,17 +178,13 @@ type##_t * type##_new() {\
 	return obj;\
 }
 
-
-// _del calls _dtor and then _free
+// _del calls _destroy and then _free
 // c++ equiv of "delete str"
 #define MAKE_DEL(type)\
 void type##_del(type##_t * const o) {\
-	if (o) type##_dtor(o);\
-\
-	/*_del behavior:*/\
-	type##_free(o);\
+	if (o) type##_destroy(o);\
+	type##_free(o); /*_del behavior:*/\
 }
-
 
 #define MAKE_TOSTR(type)\
 str_t * type##_tostr(\
@@ -218,7 +237,7 @@ void * safealloc(size_t size) {
 
 //can't forward va-args, so ... 
 //  says: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
-#define str_init_body {\
+#define str_init_body() {\
 	assert(s);\
 	/*should we assert the mem in is dirty, or should we assert it is initialized and cleared?*/\
 	assert(!s->ptr);\
@@ -250,12 +269,12 @@ void str_init_c(str_t * const s, char const * const cstr) {
 //c++ eqiv of constructor: str::str
 //https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 void str_init(str_t * const s, char const * const fmt, ...) {
-	str_init_body
+	str_init_body();
 }
 
 //deallocate members
 //c++ eqiv of destructor : str::~str
-void str_dtor(str_t * const s) {
+void str_destroy(str_t * const s) {
 	if (!s) return;
 	delete(s->ptr);
 	s->ptr = NULL;
@@ -263,12 +282,8 @@ void str_dtor(str_t * const s) {
 }
 
 
-//class allocator -- for returning the  memory of the class
-// c++ equiv of void * ::operator new(size_t)
-MAKE_ALLOC(str)
-
-// c++ equiv of void ::operator delete(void *)
-#define str_free		delete
+MAKE_ALLOC(str)		//str_alloc
+MAKE_FREE(str)		//str_free
 
 //c++ equiv of "new str(cstr)"
 //calls _alloc and then calls _init*
@@ -278,18 +293,16 @@ str_t * str_new_c(char const * const cstr) {
 	return s;
 }
 
-//c++ equiv of "new str(fmt, ...)"
-//calls _alloc and then calls _init*
 //can't use MAKE_NEW since it uses va_list which can't be forwarded
 str_t * str_new(char const * const fmt, ...) {
 	str_t * s = str_alloc();
 	// can't forward va-args so copy the above body ...
 	// ... so use a macro for the _init body instead
-	str_init_body
+	str_init_body();
 	return s;
 }
 
-MAKE_DEL(str)	//str_del calls str_dtor and then free()
+MAKE_DEL(str)	//str_del
 
 str_t * str_cat(str_t const * const a, str_t const * const b) {
 	str_t * const s = str_alloc();
@@ -349,7 +362,7 @@ STRUCT_REFL(threadInit,
 typedef int threadInit_fieldType_0;
 
 #define threadInit_init(t)				//threadInit::threadInit
-#define threadInit_dtor(t)				//threadInit::~threadInit()
+#define threadInit_destroy(t)			//threadInit::~threadInit()
 MAKE_ALLOC(threadInit)					//threadInit::operator new()
 MAKE_FREE(threadInit)					//threadInit::operator delete()
 MAKE_NEW(threadInit)					//new threadInit()
@@ -365,7 +378,7 @@ STRUCT_REFL(threadEnd,
 typedef int threadInit_fieldType_0;
 
 #define threadEnd_init(t)				//threadEnd::threadEnd
-#define threadEnd_dtor(t)				//threadEnd::~threadEnd
+#define threadEnd_destroy(t)			//threadEnd::~threadEnd
 MAKE_ALLOC(threadEnd)					//threadEnd::operator new()
 MAKE_FREE(threadEnd)					//threadEnd::operator delete
 MAKE_NEW(threadEnd)						//new threadEnd
@@ -415,6 +428,8 @@ int main() {
 		)
 	);
 	ret = NULL;
+
+	printf("sizeof(str_fieldType_0)=%lu\n", sizeof(str_fieldType_0));
 
 	return 0;
 }
