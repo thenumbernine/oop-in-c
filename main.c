@@ -30,10 +30,6 @@ void str_init(str_t * const s, char const * const fmt, ...);
 void str_dtor(str_t * const s);
 
 //_new calls _init for heap allocated objects
-#if 0
-str_t * str_new_c(char const * const cstr);
-str_t * str_new(char const * const fmt, ...);
-#endif
 
 //https://stackoverflow.com/questions/10405436/anonymous-functions-using-gcc-statement-expressions
 #define lambda(return_type, function_body) \
@@ -42,7 +38,10 @@ str_t * str_new(char const * const fmt, ...);
 	  __fn__; \
 })
 
-#if 1
+// C lambdas
+// causes Valgrind to complain:
+// "Conditional jump or move depends on uninitialised value(s)"
+#if 0
 #define str_new(args...)\
 ({\
 	str_t * s = new(str_t);\
@@ -56,10 +55,16 @@ str_t * str_new(char const * const fmt, ...);
 	str_init_c(s, args);\
 	s;\
 })
+#else
+// C functions
+// can't forward varargs
+//  says: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
+str_t * str_new_c(char const * const cstr);
+str_t * str_new(char const * const fmt, ...);
 #endif
 
 //_del calls _dtor and then frees memory
-void str_del(str_t * s);
+//void str_del(str_t * s);
 
 //_move means free args after you're done
 str_t * str_cat_move(str_t * const a, str_t * const b);
@@ -126,14 +131,13 @@ void str_dtor(str_t * const s) {
 }
 
 
-#if 0
+#if 1
 str_t * str_new_c(char const * const cstr) {
 	str_t * s = new(str_t);
 	str_init_c(s, cstr);	//or in-place init?
 	return s;
 }
 
-//https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 str_t * str_new(char const * const fmt, ...) {
 	//can't forward va-args so copy the above body ...
 	
@@ -155,6 +159,7 @@ str_t * str_new(char const * const fmt, ...) {
 }
 #endif
 
+#if 0
 void str_del(str_t * const s) {
 	if (!s) return;
 	str_dtor(s);
@@ -162,6 +167,19 @@ void str_del(str_t * const s) {
 	//_del behavior:
 	free(s);
 }
+#else
+#define str_del(\
+	/* str_t * const */s\
+) {\
+	if (s) {\
+		/* call _dtor: */\
+		str_dtor(s);\
+\
+		/*_del behavior:*/\
+		free(s);\
+	}\
+}
+#endif
 
 str_t * str_cat_move(str_t * const a, str_t * const b) {
 	str_t * const s = new(str_t);
