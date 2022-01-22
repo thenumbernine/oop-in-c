@@ -10,22 +10,22 @@
 ///macros.h
 
 //https://stackoverflow.com/questions/1872220/is-it-possible-to-iterate-over-arguments-in-variadic-macros
-#define CONCATENATE(arg1, arg2) CONCATENATE1(arg1, arg2)
-#define CONCATENATE1(arg1, arg2) CONCATENATE2(arg1, arg2)
-#define CONCATENATE2(arg1, arg2) arg1##arg2
+#define CONCAT(arg1, arg2) CONCAT1(arg1, arg2)
+#define CONCAT1(arg1, arg2) CONCAT2(arg1, arg2)
+#define CONCAT2(arg1, arg2) arg1##arg2
 #define FOR_EACH_1(what, x, ...) what(x)
-#define FOR_EACH_2(what, x, ...) what(x); FOR_EACH_1(what, __VA_ARGS__);
-#define FOR_EACH_3(what, x, ...) what(x); FOR_EACH_2(what, __VA_ARGS__);
-#define FOR_EACH_4(what, x, ...) what(x); FOR_EACH_3(what, __VA_ARGS__);
-#define FOR_EACH_5(what, x, ...) what(x); FOR_EACH_4(what, __VA_ARGS__);
-#define FOR_EACH_6(what, x, ...) what(x); FOR_EACH_5(what, __VA_ARGS__);
-#define FOR_EACH_7(what, x, ...) what(x); FOR_EACH_6(what, __VA_ARGS__);
-#define FOR_EACH_8(what, x, ...) what(x); FOR_EACH_7(what, __VA_ARGS__);
+#define FOR_EACH_2(what, x, ...) what(x) FOR_EACH_1(what, __VA_ARGS__)
+#define FOR_EACH_3(what, x, ...) what(x) FOR_EACH_2(what, __VA_ARGS__)
+#define FOR_EACH_4(what, x, ...) what(x) FOR_EACH_3(what, __VA_ARGS__)
+#define FOR_EACH_5(what, x, ...) what(x) FOR_EACH_4(what, __VA_ARGS__)
+#define FOR_EACH_6(what, x, ...) what(x) FOR_EACH_5(what, __VA_ARGS__)
+#define FOR_EACH_7(what, x, ...) what(x) FOR_EACH_6(what, __VA_ARGS__)
+#define FOR_EACH_8(what, x, ...) what(x) FOR_EACH_7(what, __VA_ARGS__)
 #define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_RSEQ_N())
 #define FOR_EACH_NARG_(...) FOR_EACH_ARG_N(__VA_ARGS__)
 #define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
 #define FOR_EACH_RSEQ_N() 8, 7, 6, 5, 4, 3, 2, 1, 0
-#define FOR_EACH_(N, what, x, ...) CONCATENATE(FOR_EACH_, N)(what, x, __VA_ARGS__)
+#define FOR_EACH_(N, what, x, ...) CONCAT(FOR_EACH_, N)(what, x, __VA_ARGS__)
 #define FOR_EACH(what, x, ...) FOR_EACH_(FOR_EACH_NARG(x, __VA_ARGS__), what, x, __VA_ARGS__)
 
 
@@ -33,9 +33,11 @@
 #define APPLY_TUPLE_ARG1(arg, rest...) arg
 #define APPLY_TUPLE_ARG2(prev1, arg, rest...) arg
 #define APPLY_TUPLE_ARG3(prev1, prev2, arg, rest...) arg
+#define APPLY_TUPLE_ARG4(prev1, prev2, prev3, arg, rest...) arg
 #define TUPLE_ARG1(args) APPLY_TUPLE_ARG1 args
 #define TUPLE_ARG2(args) APPLY_TUPLE_ARG2 args
 #define TUPLE_ARG3(args) APPLY_TUPLE_ARG3 args
+#define TUPLE_ARG4(args) APPLY_TUPLE_ARG4 args
 
 
 
@@ -75,11 +77,13 @@ typedef struct reflect_s {
 //TODO if we can replace "fields" here with STRUCT_FIELD(fields) (though this requires picking out the 1st, 2nd, and 3rd
 // then we can just call all "fields" again on STRUCT_FIELD_REFL 
 // and we don't have to have two declarations per struct
-#define MAKE_STRUCT_FIELD(x)		TUPLE_ARG2(x) TUPLE_ARG3(x);
+#define MAKE_STRUCT_FIELD(x)		STRUCT_FIELD x
 
 #define STRUCT(type, fields...)\
 STRUCT_BEGIN(type) \
-FOR_EACH(MAKE_STRUCT_FIELD, fields) /* a space before the wrap-line here is necessary*/ \
+/*FOR_EACH(MAKE_STRUCT_FIELD, fields, __VA_ARGS__) */ /* doesn't work */ \
+/*FOR_EACH_(FOR_EACH_NARG(fields, __VA_ARGS__), MAKE_STRUCT_FIELD, fields, __VA_ARGS__) */ /* doesn't work */ \
+fields \
 STRUCT_END(type)
 
 //also TODO if we are iterating/unraveling through then how about inserting into STRUCT_REFL_FIELD the current type
@@ -115,24 +119,32 @@ void objType##_##funcName##_move(objType##_t * const obj) {\
 	objType##_del(obj);\
 }
 
+
 //str.h
 
 
+//typedef <type> <name>_fieldType_<number>;
+//FOR_EACH can forward ... but you gotta CONCAT args to eval them
+#define MAKE_FIELDTYPE(x) typedef TUPLE_ARG2(x) CONCAT(TUPLE_ARG1(x), CONCAT(_fieldType_, TUPLE_ARG4(x)));
+
+#define MAKE_FIELD(x)	TUPLE_ARG2(x) TUPLE_ARG3(x);
+
+#define MAKE_STRUCT(name, fields...) \
+FOR_EACH(MAKE_FIELDTYPE, fields) \
+typedef struct name##_s {\
+FOR_EACH(MAKE_FIELD, fields) \
+} name##_t;
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
-STRUCT(str,
-	(str, size_t, len)		//len is the blob length (not including the \0 at the end)
-	(str, char *, ptr))		//ptr is len+1 in size for strlen strs
+MAKE_STRUCT(str, 
+	(str, size_t, len, 0),		//len is the blob length (not including the \0 at the end)
+	(str, char *, ptr, 1)		//ptr is len+1 in size for strlen strs
+)
+
 STRUCT_REFL(str,
 	STRUCT_REFL_FIELD(str, size_t, len)
 	STRUCT_REFL_FIELD(str, char *, ptr))
 
-#define MAKE_FIELDTYPE(x) typedef TUPLE_ARG1(x) TUPLE_ARG2(x);
-
-FOR_EACH(MAKE_FIELDTYPE,
-	(size_t, str_fieldType_0),
-	(char *, str_fieldType_1)
-)
 
 //_init is for in-place init / is the ctor
 void str_init_c(str_t * s, char const * cstr);
@@ -353,8 +365,15 @@ thread_t * thread_new(
 //main.cpp
 
 
+#if 1 // works
 STRUCT(threadInit,
-	(threadInit, int, something))
+	STRUCT_FIELD(threadInit, int, something))
+#else	//doesn't work even though it works fine above for str_t ...
+MAKE_STRUCT(threadInit,
+	(threadInit, int, something, 0)
+)
+#endif
+
 STRUCT_REFL(threadInit,
 	STRUCT_REFL_FIELD(threadInit, int, something))
 typedef int threadInit_fieldType_0;
@@ -370,7 +389,7 @@ MAKE_MOVE(str, threadInit, tostr)		// make threadInit_tostr_move from threadInit
 
 
 STRUCT(threadEnd,
-	(threadEnd, int, somethingElse))
+	STRUCT_FIELD(threadEnd, int, somethingElse))
 STRUCT_REFL(threadEnd,
 	STRUCT_REFL_FIELD(threadEnd, int, somethingElse))
 typedef int threadInit_fieldType_0;
