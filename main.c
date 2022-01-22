@@ -1,10 +1,17 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>	//offsetof
 #include <stdarg.h>	//va_start, va_end, vsnprintf
 #include <string.h>	//strlen
 #include <pthread.h>
 
+
+///macros.h
+
+
+#define numberof(x)		(sizeof(x)/sizeof(*(x)))
+#define endof(x)		((x) + numberof(x))
 
 //new.h
 
@@ -12,20 +19,57 @@
 #define new(x)			(x*)safealloc(sizeof(x))
 #define newarray(x,len)	(x*)safealloc(sizeof(x) * len)
 
+void delete(void * ptr) {
+	if (ptr) free(ptr);
+}
 
-void default_del(void * ptr) {
-	if (!ptr) return;
-	free(ptr);
+
+//reflect.h
+
+
+#define STRUCT_BEGIN(type)						typedef struct type##_s {
+#define STRUCT_FIELD(structName, type, name)		type name;
+#define STRUCT_END(type)						} type##_t;
+
+typedef struct reflect_s {
+	size_t offset;
+	size_t size;
+	char * name;
+} reflect_t;
+
+#define STRUCT_REFL_BEGIN(type)								reflect_t type##_fields[] = {
+#define STRUCT_REFL_FIELD(structName, fieldType, fieldName)		{ .offset=offsetof(structName##_t, fieldName), .size=sizeof(fieldType), .name=#fieldName},
+#define STRUCT_REFL_END(type)								};
+
+
+//move.h
+
+
+#define MAKE_MOVE(returnType, objType, funcName)\
+returnType##_t * objType##_##funcName##_move(objType##_t * const obj) {\
+	returnType##_t * const result = objType##_##funcName(obj);\
+	objType##_del(obj);\
+	return result;\
+}
+
+#define MAKE_MOVE_VOID(objType, funcName)\
+void objType##_##funcName##_move(objType##_t * const obj) {\
+	objType##_##funcName(obj);\
+	objType##_del(obj);\
 }
 
 //str.h
 
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
-typedef struct str_s {
-	size_t len;		//len is the blob length (not including the \0 at the end)
-	char * ptr;		//ptr is len+1 in size for strlen strs
-} str_t;
+STRUCT_BEGIN(str)
+	STRUCT_FIELD(str, size_t, len)		//len is the blob length (not including the \0 at the end)
+	STRUCT_FIELD(str, char *, ptr)		//ptr is len+1 in size for strlen strs
+STRUCT_END(str)
+STRUCT_REFL_BEGIN(str)
+	STRUCT_REFL_FIELD(str, size_t, len)
+	STRUCT_REFL_FIELD(str, char *, ptr)
+STRUCT_REFL_END(str)
 
 //_init is for in-place init / is the ctor
 void str_init_c(str_t * const s, char const * const cstr);
@@ -43,6 +87,34 @@ str_t * str_new(char const * const fmt, ...);
 
 //_move means free args after you're done
 str_t * str_cat_move(str_t * const a, str_t * const b);
+
+
+//tostr.h
+
+
+str_t * default_tostr(
+	void * const obj,
+	char const * const structName,
+	reflect_t * const fields,
+	size_t const numFields
+) {
+	str_t * s = str_new_c(structName);
+	if (!obj) {
+		return str_cat_move(s, str_new_c("NULL"));
+	}
+	s = str_cat_move(s, str_new("%p={", obj));
+	reflect_t * endOfFields = fields + numFields;
+	for (reflect_t * field = fields; field < endOfFields; ++field) {
+	}
+	s = str_cat_move(s, str_new_c("}"));
+	return s;
+}
+
+#define MAKE_TOSTR(type)\
+str_t * type##_tostr(type##_t const * const obj) {\
+	return default_tostr((void*)obj, #type, type##_fields, numberof(type##_fields));\
+}
+
 
 
 //fail.cpp
@@ -93,53 +165,70 @@ void * safealloc(size_t size) {
 	s->ptr = ptr;\
 }
 
+//allocate members
+//c++ eqiv of constructor: str::str
 void str_init_c(str_t * const s, char const * const cstr) {
 	s->len = strlen(cstr);	//plus 1 so our str_t can be a cstr and a c++ string
 	s->ptr = newarray(char, s->len + 1);
 	memcpy(s->ptr, cstr, s->len + 1);
 }
 
+//allocate members
+//c++ eqiv of constructor: str::str
 //https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 void str_init(str_t * const s, char const * const fmt, ...) {
 	str_init_body
 }
 
+//deallocate members
+//c++ eqiv of destructor : str::~str
 void str_dtor(str_t * const s) {
 	if (!s) return;
-	if (s->ptr) free(s->ptr);
+	delete(s->ptr);
 	s->ptr = NULL;
 	s->len = 0;
 }
 
 
+//class allocator -- for returning the  memory of the class
+// c++ equiv of void * ::operator new(size_t)
+#define str_alloc()		new(str_t)
+
+// c++ equiv of void ::operator delete(void *)
+#define str_free		delete
+
+//c++ equiv of "new str(cstr)"
+//calls _alloc and then calls _init*
 str_t * str_new_c(char const * const cstr) {
-	str_t * s = new(str_t);
+	str_t * s = str_alloc();
 	str_init_c(s, cstr);	//or in-place init?
 	return s;
 }
 
+//c++ equiv of "new str(fmt, ...)"
+//calls _alloc and then calls _init*
 str_t * str_new(char const * const fmt, ...) {
-	str_t * s = new(str_t);
+	str_t * s = str_alloc();
 	// can't forward va-args so copy the above body ...
 	// ... so use a macro for the _init body instead
 	str_init_body
 	return s;
 }
 
-/* _del calls _dtor and then frees memory */
+// _del calls _dtor and then _free
+// c++ equiv of "delete str"
 #define MAKE_DEL(type)\
 void type##_del(type##_t * const o) {\
-	if (!o) return;\
-	type##_dtor(o);\
+	if (o) type##_dtor(o);\
 \
 	/*_del behavior:*/\
-	free(o);\
+	type##_free(o);\
 }
 
 MAKE_DEL(str)	//str_del calls str_dtor and then free()
 
 str_t * str_cat_move(str_t * const a, str_t * const b) {
-	str_t * const s = new(str_t);
+	str_t * const s = str_alloc();
 	s->len = a->len + b->len;	//because for now len includes the null term
 	s->ptr = newarray(char, s->len + 1);
 	memcpy(s->ptr, a->ptr, a->len);
@@ -153,51 +242,71 @@ str_t * str_cat_move(str_t * const a, str_t * const b) {
 	return s;
 }
 
-void str_println_move(str_t * const s) {
+void str_println(str_t * const s) {
 	printf("%s\n", s->ptr);
-	
-	//_move
-	str_del(s);
 }
 
+MAKE_MOVE_VOID(str, println);
+
+
+#if 0
+//thread.cpp
+
+
+typedef struct thread_s {
+	pthread_t pthread;
+} thread_t;
+
+#define thread_alloc()	new(thread_t)
+#define thread_free		delete
+
+void thread_init(
+	thread_t * const t,
+	void * (*callback)(void *),
+	void * arg
+) {
+}
+
+thread_t * thread_new(
+	thread_t * const t,
+	void * (*callback)(void *),
+	void * arg
+) {
+	thread_t * t = thread_alloc();
+	thread_init(t, callback, arg);
+	return t;
+}
+#endif
 
 //main.cpp
 
 
-typedef struct threadInit_s {
-	int something;
-} threadInit_t;
+STRUCT_BEGIN(threadInit)
+	STRUCT_FIELD(threadInit, int, something)
+STRUCT_END(threadInit)
+STRUCT_REFL_BEGIN(threadInit)
+	STRUCT_REFL_FIELD(threadInit, int, something)
+STRUCT_REFL_END(threadInit)
 
-#define threadInit_del	default_del
-
-str_t * threadInit_tostr(threadInit_t const * const t) {
-	if (!t) return str_new_c("(threadInit_t*)NULL");
-	return str_new("(threadInit_t*)%p={something=%d}", t, t->something);
-}
-
-str_t * threadInit_tostr_move(threadInit_t * const t) {
-	str_t * s = threadInit_tostr(t);
-	threadInit_del(t);
-	return s;
-}
+#define threadInit_dtor(t)
+#define threadInit_free	delete
+MAKE_DEL(threadInit)
+MAKE_TOSTR(threadInit)				//
+MAKE_MOVE(str, threadInit, tostr)	// make threadInit_tostr_move from threadInit_tostr
 
 
-typedef struct threadEnd_s {
-	int somethingElse;
-} threadEnd_t;
+STRUCT_BEGIN(threadEnd)
+	STRUCT_FIELD(threadEnd, int, somethingElse)
+STRUCT_END(threadEnd)
+STRUCT_REFL_BEGIN(threadEnd)
+	STRUCT_REFL_FIELD(threadEnd, int, somethingElse)
+STRUCT_REFL_END(threadEnd)
 
-#define threadEnd_del	default_del
-
-str_t * threadEnd_tostr(threadEnd_t const * const t) {
-	if (!t) return str_new_c("threadEnd_t*)NULL");
-	return str_new("(threadEnd_t*)%p={somethingElse=%d}", t, t->somethingElse);
-}
-
-str_t * threadEnd_tostr_move(threadEnd_t * const t) {
-	str_t * s = threadEnd_tostr(t);
-	threadEnd_del(t);
-	return s;
-}
+#define threadEnd_dtor(t)			//threadEnd_dtor == threadEnd::~threadEnd
+#define threadEnd_free	delete		//threadEnd_free == threadEnd::operator delete
+MAKE_DEL(threadEnd)					//threadEnd_del == delete threadEnd
+MAKE_TOSTR(threadEnd)				//threadEnd_tostr == tostring(threadEnd)
+MAKE_MOVE(str, threadEnd, tostr)	// make threadEnd_tostr_move from threadEnd_tostr
 
 
 void * threadStart(void * arg_) {
