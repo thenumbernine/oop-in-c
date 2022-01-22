@@ -64,7 +64,7 @@ str_t * str_new(char const * const fmt, ...);
 #endif
 
 //_del calls _dtor and then frees memory
-//void str_del(str_t * s);
+void str_del(str_t * s);
 
 //_move means free args after you're done
 str_t * str_cat_move(str_t * const a, str_t * const b);
@@ -159,7 +159,6 @@ str_t * str_new(char const * const fmt, ...) {
 }
 #endif
 
-#if 0
 void str_del(str_t * const s) {
 	if (!s) return;
 	str_dtor(s);
@@ -167,19 +166,6 @@ void str_del(str_t * const s) {
 	//_del behavior:
 	free(s);
 }
-#else
-#define str_del(\
-	/* str_t * const */s\
-) {\
-	if (s) {\
-		/* call _dtor: */\
-		str_dtor(s);\
-\
-		/*_del behavior:*/\
-		free(s);\
-	}\
-}
-#endif
 
 str_t * str_cat_move(str_t * const a, str_t * const b) {
 	str_t * const s = new(str_t);
