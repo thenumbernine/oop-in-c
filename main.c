@@ -30,8 +30,10 @@ void str_init(str_t * const s, char const * const fmt, ...);
 void str_dtor(str_t * const s);
 
 //_new calls _init for heap allocated objects
+#if 0
 str_t * str_new_c(char const * const cstr);
 str_t * str_new(char const * const fmt, ...);
+#endif
 
 //https://stackoverflow.com/questions/10405436/anonymous-functions-using-gcc-statement-expressions
 #define lambda(return_type, function_body) \
@@ -40,7 +42,7 @@ str_t * str_new(char const * const fmt, ...);
 	  __fn__; \
 })
 
-#if 0
+#if 1
 #define str_new(args...)\
 ({\
 	str_t * s = new(str_t);\
@@ -124,7 +126,7 @@ void str_dtor(str_t * const s) {
 }
 
 
-#if 1
+#if 0
 str_t * str_new_c(char const * const cstr) {
 	str_t * s = new(str_t);
 	str_init_c(s, cstr);	//or in-place init?
