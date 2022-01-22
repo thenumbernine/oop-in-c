@@ -31,11 +31,6 @@ void delete(void * ptr) {
 #define STRUCT_FIELD(structName, type, name)		type name;
 #define STRUCT_END(type)						} type##_t;
 
-#define STRUCT(type, fields...)\
-STRUCT_BEGIN(type)\
-fields\
-STRUCT_END(type)
-
 
 typedef struct reflect_s {
 	size_t offset;
@@ -47,6 +42,18 @@ typedef struct reflect_s {
 #define STRUCT_REFL_FIELD(structName, fieldType, fieldName)		{ .offset=offsetof(structName##_t, fieldName), .size=sizeof(fieldType), .name=#fieldName},
 #define STRUCT_REFL_END(type)								};
 
+//TODO if we can replace "fields" here with STRUCT_FIELD(fields) (though this requires picking out the 1st, 2nd, and 3rd
+// then we can just call all "fields" again on STRUCT_FIELD_REFL 
+// and we don't have to have two declarations per struct
+#define STRUCT(type, fields)\
+STRUCT_BEGIN(type) \
+fields /* a space before the wrap-line here is necessary*/ \
+STRUCT_END(type)
+
+#define STRUCT_REFL(type, fields)\
+STRUCT_REFL_BEGIN(type) \
+fields \
+STRUCT_REFL_END(type)
 
 //move.h
 
@@ -69,12 +76,11 @@ void objType##_##funcName##_move(objType##_t * const obj) {\
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 STRUCT(str,
-	STRUCT_FIELD(str, size_t, len),		//len is the blob length (not including the \0 at the end)
+	STRUCT_FIELD(str, size_t, len)		//len is the blob length (not including the \0 at the end)
 	STRUCT_FIELD(str, char *, ptr))		//ptr is len+1 in size for strlen strs
-STRUCT_REFL_BEGIN(str)
+STRUCT_REFL(str,
 	STRUCT_REFL_FIELD(str, size_t, len)
-	STRUCT_REFL_FIELD(str, char *, ptr)
-STRUCT_REFL_END(str)
+	STRUCT_REFL_FIELD(str, char *, ptr))
 
 //_init is for in-place init / is the ctor
 void str_init_c(str_t * const s, char const * const cstr);
@@ -286,12 +292,10 @@ thread_t * thread_new(
 //main.cpp
 
 
-STRUCT_BEGIN(threadInit)
-	STRUCT_FIELD(threadInit, int, something)
-STRUCT_END(threadInit)
-STRUCT_REFL_BEGIN(threadInit)
-	STRUCT_REFL_FIELD(threadInit, int, something)
-STRUCT_REFL_END(threadInit)
+STRUCT(threadInit,
+	STRUCT_FIELD(threadInit, int, something))
+STRUCT_REFL(threadInit,
+	STRUCT_REFL_FIELD(threadInit, int, something))
 
 #define threadInit_dtor(t)
 #define threadInit_free	delete
@@ -300,12 +304,10 @@ MAKE_TOSTR(threadInit)				//
 MAKE_MOVE(str, threadInit, tostr)	// make threadInit_tostr_move from threadInit_tostr
 
 
-STRUCT_BEGIN(threadEnd)
-	STRUCT_FIELD(threadEnd, int, somethingElse)
-STRUCT_END(threadEnd)
-STRUCT_REFL_BEGIN(threadEnd)
-	STRUCT_REFL_FIELD(threadEnd, int, somethingElse)
-STRUCT_REFL_END(threadEnd)
+STRUCT(threadEnd,
+	STRUCT_FIELD(threadEnd, int, somethingElse))
+STRUCT_REFL(threadEnd,
+	STRUCT_REFL_FIELD(threadEnd, int, somethingElse))
 
 #define threadEnd_dtor(t)			//threadEnd_dtor == threadEnd::~threadEnd
 #define threadEnd_free	delete		//threadEnd_free == threadEnd::operator delete
