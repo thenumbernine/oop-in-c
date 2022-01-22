@@ -31,6 +31,12 @@ void delete(void * ptr) {
 #define STRUCT_FIELD(structName, type, name)		type name;
 #define STRUCT_END(type)						} type##_t;
 
+#define STRUCT(type, fields...)\
+STRUCT_BEGIN(type)\
+fields\
+STRUCT_END(type)
+
+
 typedef struct reflect_s {
 	size_t offset;
 	size_t size;
@@ -62,10 +68,9 @@ void objType##_##funcName##_move(objType##_t * const obj) {\
 
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
-STRUCT_BEGIN(str)
-	STRUCT_FIELD(str, size_t, len)		//len is the blob length (not including the \0 at the end)
-	STRUCT_FIELD(str, char *, ptr)		//ptr is len+1 in size for strlen strs
-STRUCT_END(str)
+STRUCT(str,
+	STRUCT_FIELD(str, size_t, len),		//len is the blob length (not including the \0 at the end)
+	STRUCT_FIELD(str, char *, ptr))		//ptr is len+1 in size for strlen strs
 STRUCT_REFL_BEGIN(str)
 	STRUCT_REFL_FIELD(str, size_t, len)
 	STRUCT_REFL_FIELD(str, char *, ptr)
