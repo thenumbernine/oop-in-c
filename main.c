@@ -29,6 +29,16 @@
 #define FOR_EACH(what, x, ...) FOR_EACH_(FOR_EACH_NARG(x, __VA_ARGS__), what, x, __VA_ARGS__)
 
 
+//me trying to unpack tuples of args inside macros
+#define APPLY_TUPLE_ARG1(arg, rest...) arg
+#define APPLY_TUPLE_ARG2(prev1, arg, rest...) arg
+#define APPLY_TUPLE_ARG3(prev1, prev2, arg, rest...) arg
+#define TUPLE_ARG1(args) APPLY_TUPLE_ARG1 args
+#define TUPLE_ARG2(args) APPLY_TUPLE_ARG2 args
+#define TUPLE_ARG3(args) APPLY_TUPLE_ARG3 args
+
+
+
 #define numberof(x)		(sizeof(x)/sizeof(*(x)))
 #define endof(x)		((x) + numberof(x))
 
@@ -65,9 +75,11 @@ typedef struct reflect_s {
 //TODO if we can replace "fields" here with STRUCT_FIELD(fields) (though this requires picking out the 1st, 2nd, and 3rd
 // then we can just call all "fields" again on STRUCT_FIELD_REFL 
 // and we don't have to have two declarations per struct
-#define STRUCT(type, fields)\
+#define MAKE_STRUCT_FIELD(x)		TUPLE_ARG2(x) TUPLE_ARG3(x);
+
+#define STRUCT(type, fields...)\
 STRUCT_BEGIN(type) \
-fields /* a space before the wrap-line here is necessary*/ \
+FOR_EACH(MAKE_STRUCT_FIELD, fields) /* a space before the wrap-line here is necessary*/ \
 STRUCT_END(type)
 
 //also TODO if we are iterating/unraveling through then how about inserting into STRUCT_REFL_FIELD the current type
@@ -109,32 +121,18 @@ void objType##_##funcName##_move(objType##_t * const obj) {\
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 STRUCT(str,
-	STRUCT_FIELD(str, size_t, len)		//len is the blob length (not including the \0 at the end)
-	STRUCT_FIELD(str, char *, ptr))		//ptr is len+1 in size for strlen strs
+	(str, size_t, len)		//len is the blob length (not including the \0 at the end)
+	(str, char *, ptr))		//ptr is len+1 in size for strlen strs
 STRUCT_REFL(str,
 	STRUCT_REFL_FIELD(str, size_t, len)
 	STRUCT_REFL_FIELD(str, char *, ptr))
-#if 0
-//TODO merge all this
-typedef size_t str_fieldType_0;
-typedef char * str_fieldType_1;
-#elif 0
-#define TEST(x) typedef x ;
-FOR_EACH(TEST, size_t str_fieldType_0, char * str_fieldType_1)
-#elif 1
 
-#define APPLY_GET_ARG1(arg, rest...)			arg
-#define APPLY_GET_ARG2(prev1, arg, rest...)		arg
+#define MAKE_FIELDTYPE(x) typedef TUPLE_ARG1(x) TUPLE_ARG2(x);
 
-#define GET_ARG1(args)			APPLY_GET_ARG1 args
-#define GET_ARG2(args)			APPLY_GET_ARG2 args
-
-#define TEST(x) typedef GET_ARG1(x) GET_ARG2(x);
-FOR_EACH(TEST,
+FOR_EACH(MAKE_FIELDTYPE,
 	(size_t, str_fieldType_0),
 	(char *, str_fieldType_1)
 )
-#endif
 
 //_init is for in-place init / is the ctor
 void str_init_c(str_t * s, char const * cstr);
@@ -356,7 +354,7 @@ thread_t * thread_new(
 
 
 STRUCT(threadInit,
-	STRUCT_FIELD(threadInit, int, something))
+	(threadInit, int, something))
 STRUCT_REFL(threadInit,
 	STRUCT_REFL_FIELD(threadInit, int, something))
 typedef int threadInit_fieldType_0;
@@ -372,7 +370,7 @@ MAKE_MOVE(str, threadInit, tostr)		// make threadInit_tostr_move from threadInit
 
 
 STRUCT(threadEnd,
-	STRUCT_FIELD(threadEnd, int, somethingElse))
+	(threadEnd, int, somethingElse))
 STRUCT_REFL(threadEnd,
 	STRUCT_REFL_FIELD(threadEnd, int, somethingElse))
 typedef int threadInit_fieldType_0;
