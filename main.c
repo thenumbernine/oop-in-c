@@ -9,9 +9,29 @@
 
 ///macros.h
 
+//https://stackoverflow.com/questions/1872220/is-it-possible-to-iterate-over-arguments-in-variadic-macros
+#define CONCATENATE(arg1, arg2) CONCATENATE1(arg1, arg2)
+#define CONCATENATE1(arg1, arg2) CONCATENATE2(arg1, arg2)
+#define CONCATENATE2(arg1, arg2) arg1##arg2
+#define FOR_EACH_1(what, x, ...) what(x)
+#define FOR_EACH_2(what, x, ...) what(x); FOR_EACH_1(what, __VA_ARGS__);
+#define FOR_EACH_3(what, x, ...) what(x); FOR_EACH_2(what, __VA_ARGS__);
+#define FOR_EACH_4(what, x, ...) what(x); FOR_EACH_3(what, __VA_ARGS__);
+#define FOR_EACH_5(what, x, ...) what(x); FOR_EACH_4(what, __VA_ARGS__);
+#define FOR_EACH_6(what, x, ...) what(x); FOR_EACH_5(what, __VA_ARGS__);
+#define FOR_EACH_7(what, x, ...) what(x); FOR_EACH_6(what, __VA_ARGS__);
+#define FOR_EACH_8(what, x, ...) what(x); FOR_EACH_7(what, __VA_ARGS__);
+#define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_RSEQ_N())
+#define FOR_EACH_NARG_(...) FOR_EACH_ARG_N(__VA_ARGS__)
+#define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
+#define FOR_EACH_RSEQ_N() 8, 7, 6, 5, 4, 3, 2, 1, 0
+#define FOR_EACH_(N, what, x, ...) CONCATENATE(FOR_EACH_, N)(what, x, __VA_ARGS__)
+#define FOR_EACH(what, x, ...) FOR_EACH_(FOR_EACH_NARG(x, __VA_ARGS__), what, x, __VA_ARGS__)
+
 
 #define numberof(x)		(sizeof(x)/sizeof(*(x)))
 #define endof(x)		((x) + numberof(x))
+
 
 //new.h
 
@@ -50,10 +70,12 @@ STRUCT_BEGIN(type) \
 fields /* a space before the wrap-line here is necessary*/ \
 STRUCT_END(type)
 
+//also TODO if we are iterating/unraveling through then how about inserting into STRUCT_REFL_FIELD the current type
 #define STRUCT_REFL(type, fields)\
 STRUCT_REFL_BEGIN(type) \
 fields \
 STRUCT_REFL_END(type)
+
 
 //move.h
 
@@ -61,7 +83,17 @@ STRUCT_REFL_END(type)
 #define MAKE_MOVE(returnType, objType, funcName)\
 returnType##_t * objType##_##funcName##_move(objType##_t * const obj) {\
 	returnType##_t * const result = objType##_##funcName(obj);\
+	/*_move behavior: delete incoming objects*/\
 	objType##_del(obj);\
+	return result;\
+}
+
+#define MAKE_MOVE2(returnType, objType, funcName, obj2Type)\
+returnType##_t * objType##_##funcName##_move(objType##_t * const obj, obj2Type##_t * const obj2) {\
+	returnType##_t * const result = objType##_##funcName(obj, obj2);\
+	/*_move behavior: delete incoming objects*/\
+	objType##_del(obj);\
+	obj2Type##_del(obj2);\
 	return result;\
 }
 
@@ -81,51 +113,80 @@ STRUCT(str,
 STRUCT_REFL(str,
 	STRUCT_REFL_FIELD(str, size_t, len)
 	STRUCT_REFL_FIELD(str, char *, ptr))
+//TODO merge all this
+typedef size_t str_fieldType_0;
+typedef char * str_fieldType_1;
+
 
 //_init is for in-place init / is the ctor
-void str_init_c(str_t * const s, char const * const cstr);
-void str_init(str_t * const s, char const * const fmt, ...);
+void str_init_c(str_t * s, char const * cstr);
+void str_init(str_t * s, char const * fmt, ...);
 
 //_dtor is in-place / object dtors
-void str_dtor(str_t * const s);
+void str_dtor(str_t * s);
 
 //_new calls _init for heap allocated objects
 
 
 // C functions
-str_t * str_new_c(char const * const cstr);
-str_t * str_new(char const * const fmt, ...);
+str_t * str_new_c(char const * cstr);
+str_t * str_new(char const * fmt, ...);
 
 //_move means free args after you're done
-str_t * str_cat_move(str_t * const a, str_t * const b);
+str_t * str_cat_move(str_t * a, str_t * b);
 
 
 //tostr.h
 
-
-str_t * default_tostr(
-	void * const obj,
-	char const * const structName,
-	reflect_t * const fields,
-	size_t const numFields
-) {
-	str_t * s = str_new_c(structName);
-	if (!obj) {
-		return str_cat_move(s, str_new_c("NULL"));
-	}
-	s = str_cat_move(s, str_new("%p={", obj));
-	reflect_t * endOfFields = fields + numFields;
-	for (reflect_t * field = fields; field < endOfFields; ++field) {
-	}
-	s = str_cat_move(s, str_new_c("}"));
-	return s;
+#define MAKE_ALLOC(type)\
+type##_t * type##_alloc() {\
+	return new(type##_t);\
 }
+
+#define MAKE_FREE(type)\
+void type##_free(type##_t * const obj) {\
+	delete(obj);\
+}
+
+#define MAKE_NEW(type)\
+type##_t * type##_new() {\
+	type##_t * obj = type##_alloc();\
+	type##_init(obj);\
+	return obj;\
+}
+
+
+// _del calls _dtor and then _free
+// c++ equiv of "delete str"
+#define MAKE_DEL(type)\
+void type##_del(type##_t * const o) {\
+	if (o) type##_dtor(o);\
+\
+	/*_del behavior:*/\
+	type##_free(o);\
+}
+
 
 #define MAKE_TOSTR(type)\
-str_t * type##_tostr(type##_t const * const obj) {\
-	return default_tostr((void*)obj, #type, type##_fields, numberof(type##_fields));\
+str_t * type##_tostr(\
+	type##_t const * const obj\
+) {\
+	str_t * s = str_new_c(#type);\
+	if (!obj) {\
+		return str_cat_move(s, str_new_c("NULL"));\
+	}\
+	s = str_cat_move(s, str_new("%p={", obj));\
+	reflect_t * endOfFields = type##_fields + numberof(type##_fields);\
+	for (reflect_t * field = type##_fields; field < endOfFields; ++field) {\
+		if (field > type##_fields) {\
+			s = str_cat_move(s, str_new_c(", "));\
+		}\
+		s = str_cat_move(s, str_new("%s=", field->name));\
+/*		s = str_cat_move(s, tostring(  ));*/\
+	}\
+	s = str_cat_move(s, str_new_c("}"));\
+	return s;\
 }
-
 
 
 //fail.cpp
@@ -153,6 +214,7 @@ void * safealloc(size_t size) {
 
 
 //str.cpp
+
 
 //can't forward va-args, so ... 
 //  says: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
@@ -203,7 +265,7 @@ void str_dtor(str_t * const s) {
 
 //class allocator -- for returning the  memory of the class
 // c++ equiv of void * ::operator new(size_t)
-#define str_alloc()		new(str_t)
+MAKE_ALLOC(str)
 
 // c++ equiv of void ::operator delete(void *)
 #define str_free		delete
@@ -218,6 +280,7 @@ str_t * str_new_c(char const * const cstr) {
 
 //c++ equiv of "new str(fmt, ...)"
 //calls _alloc and then calls _init*
+//can't use MAKE_NEW since it uses va_list which can't be forwarded
 str_t * str_new(char const * const fmt, ...) {
 	str_t * s = str_alloc();
 	// can't forward va-args so copy the above body ...
@@ -226,38 +289,25 @@ str_t * str_new(char const * const fmt, ...) {
 	return s;
 }
 
-// _del calls _dtor and then _free
-// c++ equiv of "delete str"
-#define MAKE_DEL(type)\
-void type##_del(type##_t * const o) {\
-	if (o) type##_dtor(o);\
-\
-	/*_del behavior:*/\
-	type##_free(o);\
-}
-
 MAKE_DEL(str)	//str_del calls str_dtor and then free()
 
-str_t * str_cat_move(str_t * const a, str_t * const b) {
+str_t * str_cat(str_t const * const a, str_t const * const b) {
 	str_t * const s = str_alloc();
 	s->len = a->len + b->len;	//because for now len includes the null term
 	s->ptr = newarray(char, s->len + 1);
 	memcpy(s->ptr, a->ptr, a->len);
 	memcpy(s->ptr + a->len, b->ptr, b->len);
 	s->ptr[a->len + b->len] = '\0';
-
-	//_move behavior: delete incoming objects
-	str_del(a);
-	str_del(b);
-
 	return s;
 }
+
+MAKE_MOVE2(str, str, cat, str)	//str_cat_move from str_cat
 
 void str_println(str_t * const s) {
 	printf("%s\n", s->ptr);
 }
 
-MAKE_MOVE_VOID(str, println);
+MAKE_MOVE_VOID(str, println);	//str_println_move from str_println
 
 
 #if 0
@@ -296,24 +346,32 @@ STRUCT(threadInit,
 	STRUCT_FIELD(threadInit, int, something))
 STRUCT_REFL(threadInit,
 	STRUCT_REFL_FIELD(threadInit, int, something))
+typedef int threadInit_fieldType_0;
 
-#define threadInit_dtor(t)
-#define threadInit_free	delete
-MAKE_DEL(threadInit)
-MAKE_TOSTR(threadInit)				//
-MAKE_MOVE(str, threadInit, tostr)	// make threadInit_tostr_move from threadInit_tostr
+#define threadInit_init(t)				//threadInit::threadInit
+#define threadInit_dtor(t)				//threadInit::~threadInit()
+MAKE_ALLOC(threadInit)					//threadInit::operator new()
+MAKE_FREE(threadInit)					//threadInit::operator delete()
+MAKE_NEW(threadInit)					//new threadInit()
+MAKE_DEL(threadInit)					//delete threadInit()
+MAKE_TOSTR(threadInit)					//tostring(threadInit)
+MAKE_MOVE(str, threadInit, tostr)		// make threadInit_tostr_move from threadInit_tostr
 
 
 STRUCT(threadEnd,
 	STRUCT_FIELD(threadEnd, int, somethingElse))
 STRUCT_REFL(threadEnd,
 	STRUCT_REFL_FIELD(threadEnd, int, somethingElse))
+typedef int threadInit_fieldType_0;
 
-#define threadEnd_dtor(t)			//threadEnd_dtor == threadEnd::~threadEnd
-#define threadEnd_free	delete		//threadEnd_free == threadEnd::operator delete
-MAKE_DEL(threadEnd)					//threadEnd_del == delete threadEnd
-MAKE_TOSTR(threadEnd)				//threadEnd_tostr == tostring(threadEnd)
-MAKE_MOVE(str, threadEnd, tostr)	// make threadEnd_tostr_move from threadEnd_tostr
+#define threadEnd_init(t)				//threadEnd::threadEnd
+#define threadEnd_dtor(t)				//threadEnd::~threadEnd
+MAKE_ALLOC(threadEnd)					//threadEnd::operator new()
+MAKE_FREE(threadEnd)					//threadEnd::operator delete
+MAKE_NEW(threadEnd)						//new threadEnd
+MAKE_DEL(threadEnd)						//delete threadEnd
+MAKE_TOSTR(threadEnd)					//tostring(threadEnd)
+MAKE_MOVE(str, threadEnd, tostr)		// make threadEnd_tostr_move from threadEnd_tostr
 
 
 void * threadStart(void * arg_) {
@@ -321,7 +379,7 @@ void * threadStart(void * arg_) {
 	str_println_move(str_cat_move(str_new_c("starting thread with "), threadInit_tostr_move((threadInit_t *)arg_)));
 	arg_ = NULL;
 
-	threadEnd_t * const ret = new(threadEnd_t);
+	threadEnd_t * const ret = threadEnd_new();
 	ret->somethingElse = 53;
 	{
 		str_t * s = threadEnd_tostr(ret);
@@ -337,7 +395,7 @@ int main() {
 	pthread_t th;
 	{
 		//pass this to pthread_create, expect it to free this once it's done
-		threadInit_t * const initArg = new(threadInit_t);
+		threadInit_t * const initArg = threadInit_new();
 		initArg->something = 42;
 		
 		str_println_move(str_cat_move(str_new_c("creating threadArg_t "), threadInit_tostr(initArg)));
