@@ -123,17 +123,24 @@ void objType##_##funcName##_move(objType##_t * const obj) {\
 //str.h
 
 
-//typedef <type> <name>_fieldType_<number>;
 //FOR_EACH can forward ... but you gotta CONCAT args to eval them
+//typedef <type> <name>_fieldType_<number>;
 #define MAKE_FIELDTYPE(x) typedef TUPLE_ARG2(x) CONCAT(TUPLE_ARG1(x), CONCAT(_fieldType_, TUPLE_ARG4(x)));
 
-#define MAKE_FIELD(x)	TUPLE_ARG2(x) TUPLE_ARG3(x);
+//works
+#define MAKE_FIELD(x)			STRUCT_FIELD(TUPLE_ARG1(x), TUPLE_ARG2(x), TUPLE_ARG3(x))
 
-#define MAKE_STRUCT(name, fields...) \
+//#define MAKE_REFL_FIELD(x)	STRUCT_REFL_FIELD(TUPLE_ARG1(x), TUPLE_ARG2(x), TUPLE_ARG3(x))
+
+#define MAKE_STRUCT(type, fields...) \
 FOR_EACH(MAKE_FIELDTYPE, fields) \
-typedef struct name##_s {\
+STRUCT_BEGIN(type) \
 FOR_EACH(MAKE_FIELD, fields) \
-} name##_t;
+STRUCT_END(type) \
+/*STRUCT_REFL_BEGIN(type) \
+FOR_EACH(MAKE_REFL_FIELD, fields) \
+STRUCT_REFL_END(type) */
+
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 MAKE_STRUCT(str, 
@@ -141,9 +148,11 @@ MAKE_STRUCT(str,
 	(str, char *, ptr, 1)		//ptr is len+1 in size for strlen strs
 )
 
+#if 1
 STRUCT_REFL(str,
 	STRUCT_REFL_FIELD(str, size_t, len)
 	STRUCT_REFL_FIELD(str, char *, ptr))
+#endif
 
 
 //_init is for in-place init / is the ctor
