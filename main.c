@@ -29,18 +29,6 @@
 #define FOR_EACH(what, ...) FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), what, __VA_ARGS__)
 
 
-//me trying to unpack tuples of args inside macros
-#define APPLY_TUPLE_ARG1(arg, rest...) arg
-#define APPLY_TUPLE_ARG2(prev1, arg, rest...) arg
-#define APPLY_TUPLE_ARG3(prev1, prev2, arg, rest...) arg
-#define APPLY_TUPLE_ARG4(prev1, prev2, prev3, arg, rest...) arg
-#define TUPLE_ARG1(args) APPLY_TUPLE_ARG1 args
-#define TUPLE_ARG2(args) APPLY_TUPLE_ARG2 args
-#define TUPLE_ARG3(args) APPLY_TUPLE_ARG3 args
-#define TUPLE_ARG4(args) APPLY_TUPLE_ARG4 args
-
-
-
 #define numberof(x)		(sizeof(x)/sizeof(*(x)))
 #define endof(x)		((x) + numberof(x))
 
@@ -56,12 +44,7 @@ void delete(void * ptr) {
 }
 
 
-//reflect.h
-
-
-#define STRUCT_BEGIN(type)						typedef struct type##_s {
-#define STRUCT_FIELD(structName, type, name)		type name;
-#define STRUCT_END(type)						} type##_t;
+//struct-with-reflect.h
 
 
 typedef struct reflect_s {
@@ -70,27 +53,27 @@ typedef struct reflect_s {
 	char * name;
 } reflect_t;
 
-#define STRUCT_REFL_BEGIN(type)								reflect_t type##_fields[] = {
-#define STRUCT_REFL_FIELD(structName, fieldType, fieldName)		{ .offset=offsetof(structName##_t, fieldName), .size=sizeof(fieldType), .name=#fieldName},
-#define STRUCT_REFL_END(type)								};
 
-//TODO if we can replace "fields" here with STRUCT_FIELD(fields) (though this requires picking out the 1st, 2nd, and 3rd
-// then we can just call all "fields" again on STRUCT_FIELD_REFL 
-// and we don't have to have two declarations per struct
-#define MAKE_STRUCT_FIELD(x)		STRUCT_FIELD x
+//FOR_EACH can forward ... but you gotta CONCAT args to eval them
+//typedef <type> <name>_fieldType_<number>;
+#define MAKE_FIELDTYPE_I(structType, ftype, fieldName, index)	typedef ftype structType##_fieldType_##index;
+#define MAKE_FIELDTYPE(x)	MAKE_FIELDTYPE_I x
 
-#define STRUCT(type, fields...)\
-STRUCT_BEGIN(type) \
-/*FOR_EACH(MAKE_STRUCT_FIELD, fields, __VA_ARGS__) */ /* doesn't work */ \
-/*FOR_EACH_(FOR_EACH_NARG(fields, __VA_ARGS__), MAKE_STRUCT_FIELD, fields, __VA_ARGS__) */ /* doesn't work */ \
-fields \
-STRUCT_END(type)
+//# args must match tuple dim
+#define MAKE_FIELD_I(structType, fieldType, fieldName, index)	fieldType fieldName;
+#define MAKE_FIELD(x)			MAKE_FIELD_I x
 
-//also TODO if we are iterating/unraveling through then how about inserting into STRUCT_REFL_FIELD the current type
-#define STRUCT_REFL(type, fields)\
-STRUCT_REFL_BEGIN(type) \
-fields \
-STRUCT_REFL_END(type)
+#define MAKE_REFL_FIELD_I(structType, fieldType, fieldName, index)	{ .offset=offsetof(structType##_t, fieldName), .size=sizeof(fieldType), .name=#fieldName},
+#define MAKE_REFL_FIELD(x)			MAKE_REFL_FIELD_I x
+
+#define STRUCT(type, fields...) \
+FOR_EACH(MAKE_FIELDTYPE, fields) \
+typedef struct type##_s {\
+FOR_EACH(MAKE_FIELD, fields) \
+} type##_t;\
+reflect_t type##_fields[] = {\
+FOR_EACH(MAKE_REFL_FIELD, fields) \
+};
 
 
 //move.h
@@ -123,32 +106,8 @@ void objType##_##funcName##_move(objType##_t * const obj) {\
 //str.h
 
 
-#define DEFER(x)	x
-
-//FOR_EACH can forward ... but you gotta CONCAT args to eval them
-//typedef <type> <name>_fieldType_<number>;
-#define MAKE_FIELDTYPE_II(structType, ftype, fieldName, index)	typedef ftype structType##_fieldType_##index;
-#define MAKE_FIELDTYPE_I(structType, ftype, fieldName, index) 	MAKE_FIELDTYPE_II(structType, ftype, fieldName, index)
-#define MAKE_FIELDTYPE(x)	DEFER(MAKE_FIELDTYPE_I x)
-
-//# args must match tuple dim
-#define MAKE_FIELD_I(structType, fieldType, fieldName, index)	STRUCT_FIELD(structType, fieldType, fieldName)
-#define MAKE_FIELD(x)			DEFER(MAKE_FIELD_I x)
-
-#define MAKE_REFL_FIELD_I(structType, fieldType, fieldName, index)	STRUCT_REFL_FIELD(structType, fieldType, fieldName)
-#define MAKE_REFL_FIELD(x)			DEFER(MAKE_REFL_FIELD_I x)
-
-#define MAKE_STRUCT(type, fields...) \
-FOR_EACH(MAKE_FIELDTYPE, fields) \
-STRUCT_BEGIN(type) \
-FOR_EACH(MAKE_FIELD, fields) \
-STRUCT_END(type) \
-STRUCT_REFL_BEGIN(type) \
-FOR_EACH(MAKE_REFL_FIELD, fields) \
-STRUCT_REFL_END(type)
-
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
-MAKE_STRUCT(str,
+STRUCT(str,
 	(str, size_t, len, 0),		// len is the blob length (not including the \0 at the end)
 	(str, char *, ptr, 1)		// ptr is len+1 in size for strlen strs
 )
@@ -373,7 +332,7 @@ thread_t * thread_new(
 //main.cpp
 
 
-MAKE_STRUCT(threadInit,
+STRUCT(threadInit,
 	(threadInit, int, something, 0)
 )
 
@@ -387,7 +346,7 @@ MAKE_TOSTR(threadInit)					//tostring(threadInit)
 MAKE_MOVE(str, threadInit, tostr)		// make threadInit_tostr_move from threadInit_tostr
 
 
-MAKE_STRUCT(threadEnd,
+STRUCT(threadEnd,
 	(threadEnd, int, somethingElse, 0))
 
 #define threadEnd_init(t)				//threadEnd::threadEnd
