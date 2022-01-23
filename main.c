@@ -9,23 +9,33 @@
 
 ///macros.h
 
-//https://stackoverflow.com/questions/1872220/is-it-possible-to-iterate-over-arguments-in-variadic-macros
+
+#define EMPTY
+
+#define DEFER(...)				__VA_ARGS__
+
 #define CONCAT(arg1, arg2) CONCAT1(arg1, arg2)
 #define CONCAT1(arg1, arg2) CONCAT2(arg1, arg2)
 #define CONCAT2(arg1, arg2) arg1##arg2
-#define FOR_EACH_1(what, x, ...) what(x)
-#define FOR_EACH_2(what, x, ...) what(x) FOR_EACH_1(what, __VA_ARGS__)
-#define FOR_EACH_3(what, x, ...) what(x) FOR_EACH_2(what, __VA_ARGS__)
-#define FOR_EACH_4(what, x, ...) what(x) FOR_EACH_3(what, __VA_ARGS__)
-#define FOR_EACH_5(what, x, ...) what(x) FOR_EACH_4(what, __VA_ARGS__)
-#define FOR_EACH_6(what, x, ...) what(x) FOR_EACH_5(what, __VA_ARGS__)
-#define FOR_EACH_7(what, x, ...) what(x) FOR_EACH_6(what, __VA_ARGS__)
-#define FOR_EACH_8(what, x, ...) what(x) FOR_EACH_7(what, __VA_ARGS__)
+
+
+//https://stackoverflow.com/questions/1872220/is-it-possible-to-iterate-over-arguments-in-variadic-macros
+// but in FOR_EACH replace "x, ..." with "..." and "x, __VA_ARGS__" with "__VA_ARGS__"
+//https://stackoverflow.com/questions/65997123/generalized-iteration-over-arguments-of-macro-in-the-c-preprocessor
+
+#define FOR_EACH_1(what, between, x, ...) what(x)
+#define FOR_EACH_2(what, between, x, ...) what(x) between FOR_EACH_1(what, between, __VA_ARGS__)
+#define FOR_EACH_3(what, between, x, ...) what(x) between FOR_EACH_2(what, between, __VA_ARGS__)
+#define FOR_EACH_4(what, between, x, ...) what(x) between FOR_EACH_3(what, between, __VA_ARGS__)
+#define FOR_EACH_5(what, between, x, ...) what(x) between FOR_EACH_4(what, between, __VA_ARGS__)
+#define FOR_EACH_6(what, between, x, ...) what(x) between FOR_EACH_5(what, between, __VA_ARGS__)
+#define FOR_EACH_7(what, between, x, ...) what(x) between FOR_EACH_6(what, between, __VA_ARGS__)
+#define FOR_EACH_8(what, between, x, ...) what(x) between FOR_EACH_7(what, between, __VA_ARGS__)
 #define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_RSEQ_N())
 #define FOR_EACH_NARG_(...) FOR_EACH_ARG_N(__VA_ARGS__)
 #define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
 #define FOR_EACH_RSEQ_N() 8, 7, 6, 5, 4, 3, 2, 1, 0
-#define FOR_EACH_(N, what, ...) CONCAT(FOR_EACH_, N)(what, __VA_ARGS__)
+#define FOR_EACH_(N, what, ...) CONCAT(FOR_EACH_, N)(what, EMPTY, __VA_ARGS__)
 #define FOR_EACH(what, ...) FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), what, __VA_ARGS__)
 
 
@@ -74,6 +84,45 @@ FOR_EACH(MAKE_FIELD, __VA_ARGS__) \
 reflect_t type##_fields[] = {\
 FOR_EACH(MAKE_REFL_FIELD, __VA_ARGS__) \
 };
+
+
+//class.h
+
+#define DEFAULT_INIT(type)\
+void type##_init(type##_t * const obj) {}
+
+#define DEFAULT_DESTROY(type)\
+void type##_destroy(type##_t * const obj) {}
+
+//class allocator -- for returning the  memory of the class
+// c++ equiv of void * ::operator new(size_t)
+#define DEFAULT_ALLOC(type)\
+type##_t * type##_alloc() {\
+	return new(type##_t);\
+}
+
+// c++ equiv of void ::operator delete(void *)
+#define DEFAULT_FREE(type)\
+void type##_free(type##_t * const obj) {\
+	delete(obj);\
+}
+
+//c++ equiv of "new str(fmt, ...)"
+//calls _alloc and then calls _init*
+#define DEFAULT_NEW(type)\
+type##_t * type##_new() {\
+	type##_t * obj = type##_alloc();\
+	type##_init(obj);\
+	return obj;\
+}
+
+// _del calls _destroy and then _free
+// c++ equiv of "delete str"
+#define DEFAULT_DEL(type)\
+void type##_del(type##_t * const o) {\
+	if (o) type##_destroy(o);\
+	type##_free(o); /*_del behavior:*/\
+}
 
 
 //move.h
@@ -133,37 +182,8 @@ str_t * str_cat_move(str_t * a, str_t * b);
 
 //tostr.h
 
-//class allocator -- for returning the  memory of the class
-// c++ equiv of void * ::operator new(size_t)
-#define MAKE_ALLOC(type)\
-type##_t * type##_alloc() {\
-	return new(type##_t);\
-}
 
-// c++ equiv of void ::operator delete(void *)
-#define MAKE_FREE(type)\
-void type##_free(type##_t * const obj) {\
-	delete(obj);\
-}
-
-//c++ equiv of "new str(fmt, ...)"
-//calls _alloc and then calls _init*
-#define MAKE_NEW(type)\
-type##_t * type##_new() {\
-	type##_t * obj = type##_alloc();\
-	type##_init(obj);\
-	return obj;\
-}
-
-// _del calls _destroy and then _free
-// c++ equiv of "delete str"
-#define MAKE_DEL(type)\
-void type##_del(type##_t * const o) {\
-	if (o) type##_destroy(o);\
-	type##_free(o); /*_del behavior:*/\
-}
-
-#define MAKE_TOSTR(type)\
+#define DEFAULT_TOSTR(type)\
 str_t * type##_tostr(\
 	type##_t const * const obj\
 ) {\
@@ -200,7 +220,7 @@ void fail_cstr(char const * const s) {
 
 
 void * safealloc(size_t size) {
-	void * ptr = calloc(size, 1);
+	void * const ptr = calloc(size, 1);
 	if (!ptr) {
 		fail("malloc failed for %u bytes\n", size);
 		return NULL;
@@ -258,9 +278,9 @@ void str_destroy(str_t * const s) {
 	s->len = 0;
 }
 
-
-MAKE_ALLOC(str)		//str_alloc
-MAKE_FREE(str)		//str_free
+DEFAULT_ALLOC(str)		//str_alloc
+DEFAULT_FREE(str)		//str_free
+DEFAULT_DEL(str)	//str_del
 
 //c++ equiv of "new str(cstr)"
 //calls _alloc and then calls _init*
@@ -270,7 +290,7 @@ str_t * str_new_c(char const * const cstr) {
 	return s;
 }
 
-//can't use MAKE_NEW since it uses va_list which can't be forwarded
+//can't use DEFAULT_NEW since it uses va_list which can't be forwarded
 str_t * str_new(char const * const fmt, ...) {
 	str_t * s = str_alloc();
 	// can't forward va-args so copy the above body ...
@@ -278,8 +298,6 @@ str_t * str_new(char const * const fmt, ...) {
 	str_init_body();
 	return s;
 }
-
-MAKE_DEL(str)	//str_del
 
 str_t * str_cat(str_t const * const a, str_t const * const b) {
 	str_t * const s = str_alloc();
@@ -329,6 +347,7 @@ thread_t * thread_new(
 }
 #endif
 
+
 //main.cpp
 
 
@@ -336,26 +355,73 @@ STRUCT(threadInit,
 	(threadInit, int, something, 0)
 )
 
-#define threadInit_init(t)				//threadInit::threadInit
-#define threadInit_destroy(t)			//threadInit::~threadInit()
-MAKE_ALLOC(threadInit)					//threadInit::operator new()
-MAKE_FREE(threadInit)					//threadInit::operator delete()
-MAKE_NEW(threadInit)					//new threadInit()
-MAKE_DEL(threadInit)					//delete threadInit()
-MAKE_TOSTR(threadInit)					//tostring(threadInit)
+
+//can you turn ((a, b), (c,d)) into (a,b,c,d) in preprocessor?
+#if 0	//works, needs DEFER
+#define EXPAND2(pack1, pack2)	(DEFER pack1, DEFER pack2)
+void test EXPAND2((int a, int b, int c), (int d, int e)) {
+	printf("%d %d %d %d\n", a, b, c, d);
+}
+#elif 0
+#define DEFER(...)			__VA_ARGS__
+#define EXPAND1(x)			DEFER x
+//TODO needs a separator
+#define EXPAND(...)			FOR_EACH(EXPAND1, __VA_ARGS__)
+void test( EXPAND((int a, int b, int c), (int d, int e)) ) {
+	printf("%d %d %d %d\n", a, b, c, d);
+}
+#endif
+
+#if 0	//works, but very redundant
+
+DEFAULT_INIT(threadInit)				//threadInit::threadInit
+DEFAULT_DESTROY(threadInit)				//threadInit::~threadInit()
+DEFAULT_ALLOC(threadInit)				//threadInit::operator new()
+DEFAULT_FREE(threadInit)				//threadInit::operator delete()
+DEFAULT_NEW(threadInit)					//new threadInit()
+DEFAULT_DEL(threadInit)					//delete threadInit()
+DEFAULT_TOSTR(threadInit)				//tostring(threadInit)
+
+#elif 1	//works, but looks ugly
+
+#define MAKE_DEFAULT_I(type, method)	CONCAT(DEFAULT_, method)(type)
+#define MAKE_DEFAULT(x)		MAKE_DEFAULT_I x
+#define MAKE_DEFAULTS(...)\
+FOR_EACH(MAKE_DEFAULT, __VA_ARGS__)
+
+MAKE_DEFAULTS(
+	(threadInit, INIT),
+	(threadInit, DESTROY),
+	(threadInit, ALLOC),
+	(threadInit, FREE),
+	(threadInit, NEW),
+	(threadInit, DEL),
+	(threadInit, TOSTR))
+
+#else	//needs macro-for extra args
+
+//#define MAKE_DEFAULT	
+
+#define MAKE_DEFAULTS(type, ...)\
+FOR_EACH(MAKE_DEFAULT(type), __VA_ARGS__)
+
+MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DEL, TOSTR)
+
+#endif
+
 MAKE_MOVE(str, threadInit, tostr)		// make threadInit_tostr_move from threadInit_tostr
 
 
 STRUCT(threadEnd,
 	(threadEnd, int, somethingElse, 0))
 
-#define threadEnd_init(t)				//threadEnd::threadEnd
-#define threadEnd_destroy(t)			//threadEnd::~threadEnd
-MAKE_ALLOC(threadEnd)					//threadEnd::operator new()
-MAKE_FREE(threadEnd)					//threadEnd::operator delete
-MAKE_NEW(threadEnd)						//new threadEnd
-MAKE_DEL(threadEnd)						//delete threadEnd
-MAKE_TOSTR(threadEnd)					//tostring(threadEnd)
+DEFAULT_INIT(threadEnd)					//threadEnd::threadEnd
+DEFAULT_DESTROY(threadEnd)				//threadEnd::~threadEnd
+DEFAULT_ALLOC(threadEnd)				//threadEnd::operator new()
+DEFAULT_FREE(threadEnd)					//threadEnd::operator delete
+DEFAULT_NEW(threadEnd)					//new threadEnd
+DEFAULT_DEL(threadEnd)					//delete threadEnd
+DEFAULT_TOSTR(threadEnd)				//tostring(threadEnd)
 MAKE_MOVE(str, threadEnd, tostr)		// make threadEnd_tostr_move from threadEnd_tostr
 
 
