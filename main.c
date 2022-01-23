@@ -12,7 +12,9 @@
 
 #define EMPTY		//for when a macro argument needs to be empty
 #define COMMA ,		//for when a macro argument needs to be a comma
+
 #define DEFER(...)				__VA_ARGS__
+
 
 #define CONCAT(arg1, arg2) CONCAT1(arg1, arg2)
 #define CONCAT1(arg1, arg2) CONCAT2(arg1, arg2)
@@ -24,21 +26,32 @@
 //https://stackoverflow.com/questions/65997123/generalized-iteration-over-arguments-of-macro-in-the-c-preprocessor
 // looks like you need the extra DEFER(between) for when "between" is set to EMPTY
 // otherwise the empty string will screw up the number of args / argument order
+// "extra" is an extra parameter/tuple for the for_each scope that you might want all iterators to see
 
-#define FOR_EACH_1(what, between, x, ...) what(x)
-#define FOR_EACH_2(what, between, x, ...) what(x) between FOR_EACH_1(what, DEFER(between), __VA_ARGS__)
-#define FOR_EACH_3(what, between, x, ...) what(x) between FOR_EACH_2(what, DEFER(between), __VA_ARGS__)
-#define FOR_EACH_4(what, between, x, ...) what(x) between FOR_EACH_3(what, DEFER(between), __VA_ARGS__)
-#define FOR_EACH_5(what, between, x, ...) what(x) between FOR_EACH_4(what, DEFER(between), __VA_ARGS__)
-#define FOR_EACH_6(what, between, x, ...) what(x) between FOR_EACH_5(what, DEFER(between), __VA_ARGS__)
-#define FOR_EACH_7(what, between, x, ...) what(x) between FOR_EACH_6(what, DEFER(between), __VA_ARGS__)
-#define FOR_EACH_8(what, between, x, ...) what(x) between FOR_EACH_7(what, DEFER(between), __VA_ARGS__)
+#define FOR_EACH_1(what, between, extra, x, ...) what(x, extra)
+#define FOR_EACH_2(what, between, extra, x, ...) what(x, extra) between FOR_EACH_1(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_3(what, between, extra, x, ...) what(x, extra) between FOR_EACH_2(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_4(what, between, extra, x, ...) what(x, extra) between FOR_EACH_3(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_5(what, between, extra, x, ...) what(x, extra) between FOR_EACH_4(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_6(what, between, extra, x, ...) what(x, extra) between FOR_EACH_5(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_7(what, between, extra, x, ...) what(x, extra) between FOR_EACH_6(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_8(what, between, extra, x, ...) what(x, extra) between FOR_EACH_7(what, DEFER(between), DEFER(extra), __VA_ARGS__)
 #define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_RSEQ_N())
 #define FOR_EACH_NARG_(...) FOR_EACH_ARG_N(__VA_ARGS__)
 #define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
 #define FOR_EACH_RSEQ_N() 8, 7, 6, 5, 4, 3, 2, 1, 0
-#define FOR_EACH_(N, what, between, ...) CONCAT(FOR_EACH_, N)(what, DEFER(between), __VA_ARGS__)
-#define FOR_EACH(what, between, ...) FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), what, DEFER(between), __VA_ARGS__)
+#define FOR_EACH_(N, what, between, extra, ...) CONCAT(FOR_EACH_, N)(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH(what, between, extra, ...) FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), what, DEFER(between), DEFER(extra), __VA_ARGS__)
+
+
+//used to unpack the ()'s
+// you can't just call DEFER in the FOR_EACH, you gotta do this
+#define EXPAND_I(x, extra)			DEFER x
+
+// converts macro tuple args into a single expanded list:
+// (a, b), (c, d, e), (f) => a, b, c, d, e, f
+#define EXPAND(...)\
+FOR_EACH(EXPAND_I, COMMA, EMPTY, __VA_ARGS__)
 
 
 #define numberof(x)		(sizeof(x)/sizeof(*(x)))
@@ -69,22 +82,28 @@ typedef struct reflect_s {
 //FOR_EACH can forward ... but you gotta CONCAT args to eval them
 //typedef <type> <name>_fieldType_<number>;
 #define MAKE_FIELDTYPE_I(structType, ftype, fieldName, index)	typedef ftype structType##_fieldType_##index;
-#define MAKE_FIELDTYPE(x)	MAKE_FIELDTYPE_I x
+#define MAKE_FIELDTYPE(x, className)	MAKE_FIELDTYPE_I x 
+
+#if 0 //working on merging the extra arg into the tuple 
+#define LEFTPAR (
+#define RIGHTPAR )
+#define MAKE_FIELDTYPE(x, className)	MAKE_FIELDTYPE_I LEFTPAR EXPAND x RIGHTPAR
+#endif
 
 //# args must match tuple dim
 #define MAKE_FIELD_I(structType, fieldType, fieldName, index)	fieldType fieldName;
-#define MAKE_FIELD(x)			MAKE_FIELD_I x
+#define MAKE_FIELD(x, extra)			MAKE_FIELD_I x
 
 #define MAKE_REFL_FIELD_I(structType, fieldType, fieldName, index)	{ .offset=offsetof(structType##_t, fieldName), .size=sizeof(fieldType), .name=#fieldName},
-#define MAKE_REFL_FIELD(x)			MAKE_REFL_FIELD_I x
+#define MAKE_REFL_FIELD(x, extra)			MAKE_REFL_FIELD_I x
 
-#define STRUCT(type, ...) \
-FOR_EACH(MAKE_FIELDTYPE, EMPTY, __VA_ARGS__) \
-typedef struct type##_s {\
-FOR_EACH(MAKE_FIELD, EMPTY, __VA_ARGS__) \
-} type##_t;\
-reflect_t type##_fields[] = {\
-FOR_EACH(MAKE_REFL_FIELD, EMPTY, __VA_ARGS__) \
+#define STRUCT(className, ...) \
+FOR_EACH(MAKE_FIELDTYPE, EMPTY, className, __VA_ARGS__) \
+typedef struct className##_s {\
+FOR_EACH(MAKE_FIELD, EMPTY, EMPTY, __VA_ARGS__) \
+} className##_t;\
+reflect_t className##_fields[] = {\
+FOR_EACH(MAKE_REFL_FIELD, EMPTY, EMPTY, __VA_ARGS__) \
 };
 
 
@@ -358,29 +377,14 @@ STRUCT(threadInit,
 )
 
 
+#if 0
 //can you turn ((a, b), (c,d)) into (a,b,c,d) in preprocessor?
-#if 0	//works, needs DEFER
-#define EXPAND2(pack1, pack2)	DEFER pack1, DEFER pack2
-void test(
-	EXPAND2((int a, int b, int c), (int d, int e))
-) {
-	printf("%d %d %d %d\n", a, b, c, d);
-}
-#elif 1
-
-//used to unpack the ()'s
-#define DEFER1(x)			DEFER x
-
-// converts macro tuple args into a single expanded list:
-// (a, b), (c, d, e), (f) => a, b, c, d, e, f
-#define EXPAND(...)\
-FOR_EACH(DEFER1, COMMA, __VA_ARGS__)
-
 void test( 
 	EXPAND((int a, int b, int c), (int d, int e))
 ) {
-	printf("%d %d %d %d\n", a, b, c, d);
+	printf("%d %d %d %d %d\n", a, b, c, d, e);
 }
+//ok now can you use this in a FOR_EACH
 #endif
 
 #if 0	//works, but very redundant
@@ -396,9 +400,9 @@ DEFAULT_TOSTR(threadInit)				//tostring(threadInit)
 #elif 1	//works, but looks ugly
 
 #define MAKE_DEFAULT_I(type, method)	CONCAT(DEFAULT_, method)(type)
-#define MAKE_DEFAULT(x)		MAKE_DEFAULT_I x
+#define MAKE_DEFAULT(x, extra)		MAKE_DEFAULT_I x
 #define MAKE_DEFAULTS(...)\
-FOR_EACH(MAKE_DEFAULT, EMPTY, __VA_ARGS__)
+FOR_EACH(MAKE_DEFAULT, EMPTY, EMPTY, __VA_ARGS__)
 
 MAKE_DEFAULTS(
 	(threadInit, INIT),
@@ -409,12 +413,12 @@ MAKE_DEFAULTS(
 	(threadInit, DEL),
 	(threadInit, TOSTR))
 
-#else	//needs macro-for extra args
+#elif 0	//needs macro-for extra args
 
 //#define MAKE_DEFAULT	
 
 #define MAKE_DEFAULTS(type, ...)\
-FOR_EACH(MAKE_DEFAULT(type), EMPTY, __VA_ARGS__)
+FOR_EACH(MAKE_DEFAULT(type), EMPTY, EMPTY, __VA_ARGS__)
 
 MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DEL, TOSTR)
 
