@@ -10,8 +10,8 @@
 ///macros.h
 
 
-#define EMPTY
-
+#define EMPTY		//for when a macro argument needs to be empty
+#define COMMA ,		//for when a macro argument needs to be a comma
 #define DEFER(...)				__VA_ARGS__
 
 #define CONCAT(arg1, arg2) CONCAT1(arg1, arg2)
@@ -22,21 +22,23 @@
 //https://stackoverflow.com/questions/1872220/is-it-possible-to-iterate-over-arguments-in-variadic-macros
 // but in FOR_EACH replace "x, ..." with "..." and "x, __VA_ARGS__" with "__VA_ARGS__"
 //https://stackoverflow.com/questions/65997123/generalized-iteration-over-arguments-of-macro-in-the-c-preprocessor
+// looks like you need the extra DEFER(between) for when "between" is set to EMPTY
+// otherwise the empty string will screw up the number of args / argument order
 
 #define FOR_EACH_1(what, between, x, ...) what(x)
-#define FOR_EACH_2(what, between, x, ...) what(x) between FOR_EACH_1(what, between, __VA_ARGS__)
-#define FOR_EACH_3(what, between, x, ...) what(x) between FOR_EACH_2(what, between, __VA_ARGS__)
-#define FOR_EACH_4(what, between, x, ...) what(x) between FOR_EACH_3(what, between, __VA_ARGS__)
-#define FOR_EACH_5(what, between, x, ...) what(x) between FOR_EACH_4(what, between, __VA_ARGS__)
-#define FOR_EACH_6(what, between, x, ...) what(x) between FOR_EACH_5(what, between, __VA_ARGS__)
-#define FOR_EACH_7(what, between, x, ...) what(x) between FOR_EACH_6(what, between, __VA_ARGS__)
-#define FOR_EACH_8(what, between, x, ...) what(x) between FOR_EACH_7(what, between, __VA_ARGS__)
+#define FOR_EACH_2(what, between, x, ...) what(x) between FOR_EACH_1(what, DEFER(between), __VA_ARGS__)
+#define FOR_EACH_3(what, between, x, ...) what(x) between FOR_EACH_2(what, DEFER(between), __VA_ARGS__)
+#define FOR_EACH_4(what, between, x, ...) what(x) between FOR_EACH_3(what, DEFER(between), __VA_ARGS__)
+#define FOR_EACH_5(what, between, x, ...) what(x) between FOR_EACH_4(what, DEFER(between), __VA_ARGS__)
+#define FOR_EACH_6(what, between, x, ...) what(x) between FOR_EACH_5(what, DEFER(between), __VA_ARGS__)
+#define FOR_EACH_7(what, between, x, ...) what(x) between FOR_EACH_6(what, DEFER(between), __VA_ARGS__)
+#define FOR_EACH_8(what, between, x, ...) what(x) between FOR_EACH_7(what, DEFER(between), __VA_ARGS__)
 #define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_RSEQ_N())
 #define FOR_EACH_NARG_(...) FOR_EACH_ARG_N(__VA_ARGS__)
 #define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
 #define FOR_EACH_RSEQ_N() 8, 7, 6, 5, 4, 3, 2, 1, 0
-#define FOR_EACH_(N, what, ...) CONCAT(FOR_EACH_, N)(what, EMPTY, __VA_ARGS__)
-#define FOR_EACH(what, ...) FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), what, __VA_ARGS__)
+#define FOR_EACH_(N, what, between, ...) CONCAT(FOR_EACH_, N)(what, DEFER(between), __VA_ARGS__)
+#define FOR_EACH(what, between, ...) FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), what, DEFER(between), __VA_ARGS__)
 
 
 #define numberof(x)		(sizeof(x)/sizeof(*(x)))
@@ -77,12 +79,12 @@ typedef struct reflect_s {
 #define MAKE_REFL_FIELD(x)			MAKE_REFL_FIELD_I x
 
 #define STRUCT(type, ...) \
-FOR_EACH(MAKE_FIELDTYPE, __VA_ARGS__) \
+FOR_EACH(MAKE_FIELDTYPE, EMPTY, __VA_ARGS__) \
 typedef struct type##_s {\
-FOR_EACH(MAKE_FIELD, __VA_ARGS__) \
+FOR_EACH(MAKE_FIELD, EMPTY, __VA_ARGS__) \
 } type##_t;\
 reflect_t type##_fields[] = {\
-FOR_EACH(MAKE_REFL_FIELD, __VA_ARGS__) \
+FOR_EACH(MAKE_REFL_FIELD, EMPTY, __VA_ARGS__) \
 };
 
 
@@ -358,16 +360,25 @@ STRUCT(threadInit,
 
 //can you turn ((a, b), (c,d)) into (a,b,c,d) in preprocessor?
 #if 0	//works, needs DEFER
-#define EXPAND2(pack1, pack2)	(DEFER pack1, DEFER pack2)
-void test EXPAND2((int a, int b, int c), (int d, int e)) {
+#define EXPAND2(pack1, pack2)	DEFER pack1, DEFER pack2
+void test(
+	EXPAND2((int a, int b, int c), (int d, int e))
+) {
 	printf("%d %d %d %d\n", a, b, c, d);
 }
-#elif 0
-#define DEFER(...)			__VA_ARGS__
-#define EXPAND1(x)			DEFER x
-//TODO needs a separator
-#define EXPAND(...)			FOR_EACH(EXPAND1, __VA_ARGS__)
-void test( EXPAND((int a, int b, int c), (int d, int e)) ) {
+#elif 1
+
+//used to unpack the ()'s
+#define DEFER1(x)			DEFER x
+
+// converts macro tuple args into a single expanded list:
+// (a, b), (c, d, e), (f) => a, b, c, d, e, f
+#define EXPAND(...)\
+FOR_EACH(DEFER1, COMMA, __VA_ARGS__)
+
+void test( 
+	EXPAND((int a, int b, int c), (int d, int e))
+) {
 	printf("%d %d %d %d\n", a, b, c, d);
 }
 #endif
@@ -387,7 +398,7 @@ DEFAULT_TOSTR(threadInit)				//tostring(threadInit)
 #define MAKE_DEFAULT_I(type, method)	CONCAT(DEFAULT_, method)(type)
 #define MAKE_DEFAULT(x)		MAKE_DEFAULT_I x
 #define MAKE_DEFAULTS(...)\
-FOR_EACH(MAKE_DEFAULT, __VA_ARGS__)
+FOR_EACH(MAKE_DEFAULT, EMPTY, __VA_ARGS__)
 
 MAKE_DEFAULTS(
 	(threadInit, INIT),
@@ -403,7 +414,7 @@ MAKE_DEFAULTS(
 //#define MAKE_DEFAULT	
 
 #define MAKE_DEFAULTS(type, ...)\
-FOR_EACH(MAKE_DEFAULT(type), __VA_ARGS__)
+FOR_EACH(MAKE_DEFAULT(type), EMPTY, __VA_ARGS__)
 
 MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DEL, TOSTR)
 
