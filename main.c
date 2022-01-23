@@ -25,8 +25,8 @@
 #define FOR_EACH_NARG_(...) FOR_EACH_ARG_N(__VA_ARGS__)
 #define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
 #define FOR_EACH_RSEQ_N() 8, 7, 6, 5, 4, 3, 2, 1, 0
-#define FOR_EACH_(N, what, x, ...) CONCAT(FOR_EACH_, N)(what, x, __VA_ARGS__)
-#define FOR_EACH(what, x, ...) FOR_EACH_(FOR_EACH_NARG(x, __VA_ARGS__), what, x, __VA_ARGS__)
+#define FOR_EACH_(N, what, ...) CONCAT(FOR_EACH_, N)(what, __VA_ARGS__)
+#define FOR_EACH(what, ...) FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), what, __VA_ARGS__)
 
 
 //me trying to unpack tuples of args inside macros
@@ -123,36 +123,35 @@ void objType##_##funcName##_move(objType##_t * const obj) {\
 //str.h
 
 
+#define DEFER(x)	x
+
 //FOR_EACH can forward ... but you gotta CONCAT args to eval them
 //typedef <type> <name>_fieldType_<number>;
-#define MAKE_FIELDTYPE(x) typedef TUPLE_ARG2(x) CONCAT(TUPLE_ARG1(x), CONCAT(_fieldType_, TUPLE_ARG4(x)));
+#define MAKE_FIELDTYPE_II(structType, ftype, fieldName, index)	typedef ftype structType##_fieldType_##index;
+#define MAKE_FIELDTYPE_I(structType, ftype, fieldName, index) 	MAKE_FIELDTYPE_II(structType, ftype, fieldName, index)
+#define MAKE_FIELDTYPE(x)	DEFER(MAKE_FIELDTYPE_I x)
 
-//works
-#define MAKE_FIELD(x)			STRUCT_FIELD(TUPLE_ARG1(x), TUPLE_ARG2(x), TUPLE_ARG3(x))
+//# args must match tuple dim
+#define MAKE_FIELD_I(structType, fieldType, fieldName, index)	STRUCT_FIELD(structType, fieldType, fieldName)
+#define MAKE_FIELD(x)			DEFER(MAKE_FIELD_I x)
 
-//#define MAKE_REFL_FIELD(x)	STRUCT_REFL_FIELD(TUPLE_ARG1(x), TUPLE_ARG2(x), TUPLE_ARG3(x))
+#define MAKE_REFL_FIELD_I(structType, fieldType, fieldName, index)	STRUCT_REFL_FIELD(structType, fieldType, fieldName)
+#define MAKE_REFL_FIELD(x)			DEFER(MAKE_REFL_FIELD_I x)
 
 #define MAKE_STRUCT(type, fields...) \
 FOR_EACH(MAKE_FIELDTYPE, fields) \
 STRUCT_BEGIN(type) \
 FOR_EACH(MAKE_FIELD, fields) \
 STRUCT_END(type) \
-/*STRUCT_REFL_BEGIN(type) \
+STRUCT_REFL_BEGIN(type) \
 FOR_EACH(MAKE_REFL_FIELD, fields) \
-STRUCT_REFL_END(type) */
-
+STRUCT_REFL_END(type)
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
-MAKE_STRUCT(str, 
-	(str, size_t, len, 0),		//len is the blob length (not including the \0 at the end)
-	(str, char *, ptr, 1)		//ptr is len+1 in size for strlen strs
+MAKE_STRUCT(str,
+	(str, size_t, len, 0),		// len is the blob length (not including the \0 at the end)
+	(str, char *, ptr, 1)		// ptr is len+1 in size for strlen strs
 )
-
-#if 1
-STRUCT_REFL(str,
-	STRUCT_REFL_FIELD(str, size_t, len)
-	STRUCT_REFL_FIELD(str, char *, ptr))
-#endif
 
 
 //_init is for in-place init / is the ctor
@@ -374,18 +373,9 @@ thread_t * thread_new(
 //main.cpp
 
 
-#if 1 // works
-STRUCT(threadInit,
-	STRUCT_FIELD(threadInit, int, something))
-#else	//doesn't work even though it works fine above for str_t ...
 MAKE_STRUCT(threadInit,
 	(threadInit, int, something, 0)
 )
-#endif
-
-STRUCT_REFL(threadInit,
-	STRUCT_REFL_FIELD(threadInit, int, something))
-typedef int threadInit_fieldType_0;
 
 #define threadInit_init(t)				//threadInit::threadInit
 #define threadInit_destroy(t)			//threadInit::~threadInit()
@@ -397,11 +387,8 @@ MAKE_TOSTR(threadInit)					//tostring(threadInit)
 MAKE_MOVE(str, threadInit, tostr)		// make threadInit_tostr_move from threadInit_tostr
 
 
-STRUCT(threadEnd,
-	STRUCT_FIELD(threadEnd, int, somethingElse))
-STRUCT_REFL(threadEnd,
-	STRUCT_REFL_FIELD(threadEnd, int, somethingElse))
-typedef int threadInit_fieldType_0;
+MAKE_STRUCT(threadEnd,
+	(threadEnd, int, somethingElse, 0))
 
 #define threadEnd_init(t)				//threadEnd::threadEnd
 #define threadEnd_destroy(t)			//threadEnd::~threadEnd
