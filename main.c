@@ -66,13 +66,13 @@ typedef struct reflect_s {
 #define MAKE_REFL_FIELD_I(structType, fieldType, fieldName, index)	{ .offset=offsetof(structType##_t, fieldName), .size=sizeof(fieldType), .name=#fieldName},
 #define MAKE_REFL_FIELD(x)			MAKE_REFL_FIELD_I x
 
-#define STRUCT(type, fields...) \
-FOR_EACH(MAKE_FIELDTYPE, fields) \
+#define STRUCT(type, ...) \
+FOR_EACH(MAKE_FIELDTYPE, __VA_ARGS__) \
 typedef struct type##_s {\
-FOR_EACH(MAKE_FIELD, fields) \
+FOR_EACH(MAKE_FIELD, __VA_ARGS__) \
 } type##_t;\
 reflect_t type##_fields[] = {\
-FOR_EACH(MAKE_REFL_FIELD, fields) \
+FOR_EACH(MAKE_REFL_FIELD, __VA_ARGS__) \
 };
 
 
@@ -193,7 +193,7 @@ void fail_cstr(char const * const s) {
 	exit(1);
 }
 
-#define fail(args...)	(fail_cstr(str_new(args)->ptr))	//leaks the allocated string
+#define fail(...)	(fail_cstr(str_new(__VA_ARGS__)->ptr))	//leaks the allocated string
 
 
 //safealloc.cpp
