@@ -7,9 +7,8 @@
 
 
 #include "struct-with-reflect.h"
-#include "class.h"
+#include "class.h"//needs str but comes before str
 #include "move.h"
-#include "tostr.h"	//needs str but comes before str
 #include "fail.h"
 #include "str.h"
 #include "thread.h"
