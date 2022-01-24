@@ -12,6 +12,8 @@
 
 #define EMPTY		//for when a macro argument needs to be empty
 #define COMMA ,		//for when a macro argument needs to be a comma
+#define LEFTPAR (
+#define RIGHTPAR )
 
 #define DEFER(...)				__VA_ARGS__
 
@@ -81,13 +83,15 @@ typedef struct reflect_s {
 
 //FOR_EACH can forward ... but you gotta CONCAT args to eval them
 //typedef <type> <name>_fieldType_<number>;
+#if 1 // works
 #define MAKE_FIELDTYPE_I(structType, ftype, fieldName, index)	typedef ftype structType##_fieldType_##index;
 #define MAKE_FIELDTYPE(x, className)	MAKE_FIELDTYPE_I x 
+#endif
 
 #if 0 //working on merging the extra arg into the tuple 
-#define LEFTPAR (
-#define RIGHTPAR )
-#define MAKE_FIELDTYPE(x, className)	MAKE_FIELDTYPE_I LEFTPAR EXPAND x RIGHTPAR
+#define MAKE_FIELDTYPE_I2(structType, ftype, fieldName, index, structType2)	typedef ftype structType##_fieldType_##index;
+#define MAKE_FIELDTYPE_I1(tuple)			MAKE_FIELDTYPE_I2(tuple)
+#define MAKE_FIELDTYPE(tuple, className)	MAKE_FIELDTYPE_I1(EXPAND(tuple, (className)))
 #endif
 
 //# args must match tuple dim
@@ -108,6 +112,7 @@ FOR_EACH(MAKE_REFL_FIELD, EMPTY, EMPTY, __VA_ARGS__) \
 
 
 //class.h
+
 
 #define DEFAULT_INIT(type)\
 void type##_init(type##_t * const obj) {}
@@ -144,6 +149,12 @@ void type##_del(type##_t * const o) {\
 	if (o) type##_destroy(o);\
 	type##_free(o); /*_del behavior:*/\
 }
+
+
+#define MAKE_DEFAULT(name, type) CONCAT(DEFAULT_,name)(type)
+#define MAKE_DEFAULTS(type, ...)\
+FOR_EACH(MAKE_DEFAULT, EMPTY, type, __VA_ARGS__)
+
 
 
 //move.h
@@ -386,6 +397,20 @@ void test(
 }
 //ok now can you use this in a FOR_EACH
 #endif
+#if 1 //yeah but can you defer?
+#define TEST2(a,b,c,d) 		void test(a, b, c, d)
+#define CONCATV1(e,f,g,h) 	TEST2(e,f,g,h)
+#define CONCATV(tuple) 		CONCATV1(tuple)	//looks like to use the expanded args you just gotta defer once like so
+#define TEST(tuple, extra) 	CONCATV(EXPAND(tuple, (extra)))
+TEST((int a, int b, int c), int d) {
+	printf("%d %d %d %d\n", a, b, c, d);
+}
+#endif
+#if 1 //ok so defer works, how about defer expand for loop?
+#define MAKEFUNC(suffix, extra)	void func_##suffix(int n, int extra) {}
+FOR_EACH(MAKEFUNC, EMPTY, everyoneGetsIt, a, b, c)
+#endif
+
 
 #if 0	//works, but very redundant
 
@@ -397,7 +422,7 @@ DEFAULT_NEW(threadInit)					//new threadInit()
 DEFAULT_DEL(threadInit)					//delete threadInit()
 DEFAULT_TOSTR(threadInit)				//tostring(threadInit)
 
-#elif 1	//works, but looks ugly
+#elif 0	//works, but looks ugly
 
 #define MAKE_DEFAULT_I(type, method)	CONCAT(DEFAULT_, method)(type)
 #define MAKE_DEFAULT(x, extra)		MAKE_DEFAULT_I x
@@ -413,12 +438,7 @@ MAKE_DEFAULTS(
 	(threadInit, DEL),
 	(threadInit, TOSTR))
 
-#elif 0	//needs macro-for extra args
-
-//#define MAKE_DEFAULT	
-
-#define MAKE_DEFAULTS(type, ...)\
-FOR_EACH(MAKE_DEFAULT(type), EMPTY, EMPTY, __VA_ARGS__)
+#elif 1	//needs macro-for extra args
 
 MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DEL, TOSTR)
 
