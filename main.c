@@ -114,14 +114,6 @@ FOR_EACH(MAKE_REFL_FIELD, EMPTY, EMPTY, __VA_ARGS__) \
 //class.h
 
 
-// c++ equiv of type::type()
-#define DEFAULT_INIT(type)\
-void type##_init(type##_t * const obj) {}
-
-// c++ equiv of type::~type()
-#define DEFAULT_DESTROY(type)\
-void type##_destroy(type##_t * const obj) {}
-
 //class allocator -- for returning the  memory of the class
 // c++ equiv of void * type::operator new(size_t)
 #define DEFAULT_ALLOC(type)\
@@ -135,6 +127,14 @@ void type##_free(type##_t * const obj) {\
 	delete(obj);\
 }
 
+// c++ equiv of type::type()
+#define DEFAULT_INIT(type)\
+void type##_init(type##_t * const obj) {}
+
+// c++ equiv of type::~type()
+#define DEFAULT_DESTROY(type)\
+void type##_destroy(type##_t * const obj) {}
+
 //c++ equiv of "new type()"
 //calls type_alloc and then calls type_init
 #define DEFAULT_NEW(type)\
@@ -144,12 +144,12 @@ type##_t * type##_new() {\
 	return obj;\
 }
 
-// type_del calls type_destroy and then type_free
+// type_delete calls type_destroy and then type_free
 // c++ equiv of "delete type"
-#define DEFAULT_DEL(type)\
-void type##_del(type##_t * const o) {\
+#define DEFAULT_DELETE(type)\
+void type##_delete(type##_t * const o) {\
 	if (o) type##_destroy(o);\
-	type##_free(o); /*_del behavior:*/\
+	type##_free(o); /*_delete behavior:*/\
 }
 
 
@@ -169,7 +169,7 @@ FOR_EACH(MAKE_DEFAULT, EMPTY, type, __VA_ARGS__)
 returnType##_t * objType##_##funcName##_move(objType##_t * const obj) {\
 	returnType##_t * const result = objType##_##funcName(obj);\
 	/*_move behavior: delete incoming objects*/\
-	objType##_del(obj);\
+	objType##_delete(obj);\
 	return result;\
 }
 
@@ -177,15 +177,15 @@ returnType##_t * objType##_##funcName##_move(objType##_t * const obj) {\
 returnType##_t * objType##_##funcName##_move(objType##_t * const obj, obj2Type##_t * const obj2) {\
 	returnType##_t * const result = objType##_##funcName(obj, obj2);\
 	/*_move behavior: delete incoming objects*/\
-	objType##_del(obj);\
-	obj2Type##_del(obj2);\
+	objType##_delete(obj);\
+	obj2Type##_delete(obj2);\
 	return result;\
 }
 
 #define MAKE_MOVE_VOID(objType, funcName)\
 void objType##_##funcName##_move(objType##_t * const obj) {\
 	objType##_##funcName(obj);\
-	objType##_del(obj);\
+	objType##_delete(obj);\
 }
 
 
@@ -315,7 +315,7 @@ void str_destroy(str_t * const s) {
 	s->len = 0;
 }
 
-MAKE_DEFAULTS(str, ALLOC, FREE, DEL)
+MAKE_DEFAULTS(str, ALLOC, FREE, DELETE)
 
 //c++ equiv of "new str(cstr)"
 //calls _alloc and then calls _init*
@@ -353,33 +353,50 @@ void str_println(str_t * const s) {
 MAKE_MOVE_VOID(str, println);	//str_println_move from str_println
 
 
-#if 0
 //thread.cpp
+#if 1
 
 
 typedef struct thread_s {
 	pthread_t pthread;
+	void * arg;
 } thread_t;
 
-#define thread_alloc()	new(thread_t)
-#define thread_free		delete
+DEFAULT_ALLOC(thread)
+DEFAULT_FREE(thread)
+DEFAULT_DESTROY(thread)
+DEFAULT_DELETE(thread)
 
 void thread_init(
 	thread_t * const t,
-	void * (*callback)(void *),
+	// extra args forwarded
+	void * (*threadStart)(void *),
 	void * arg
 ) {
+	t->arg = arg;
+	int err = pthread_create(&t->pthread, NULL, threadStart, (void*)t);
+	if (err) fail("pthread_create failed with error %d\n", err);
 }
 
 thread_t * thread_new(
-	thread_t * const t,
-	void * (*callback)(void *),
+	// extra args forwarded
+	void * (*threadStart)(void *),
 	void * arg
 ) {
 	thread_t * t = thread_alloc();
-	thread_init(t, callback, arg);
+	thread_init(t, threadStart, arg);
 	return t;
 }
+
+void * thread_join(
+	thread_t * const t
+) {
+	void * ret = NULL;
+	int err = pthread_join(t->pthread, &ret);
+	if (err) fail("pthread_join failed with error %d\n", err);
+	return ret;
+}
+
 #endif
 
 
@@ -413,36 +430,44 @@ FOR_EACH(MAKEFUNC, EMPTY, everyoneGetsIt, a, b, c)
 STRUCT(threadInit,
 	(threadInit, int, something, 0)
 )
-MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DEL, TOSTR)
+MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DELETE, TOSTR)
 MAKE_MOVE(str, threadInit, tostr)
 
 
 STRUCT(threadEnd,
 	(threadEnd, int, somethingElse, 0)
 )
-MAKE_DEFAULTS(threadEnd, INIT, DESTROY, ALLOC, FREE, NEW, DEL, TOSTR)
+MAKE_DEFAULTS(threadEnd, INIT, DESTROY, ALLOC, FREE, NEW, DELETE, TOSTR)
 MAKE_MOVE(str, threadEnd, tostr)
 
 
 void * threadStart(void * arg_) {
 	assert(arg_);
-	str_println_move(str_cat_move(str_new_c("starting thread with "), threadInit_tostr_move((threadInit_t *)arg_)));
+	thread_t * const this = (thread_t *)arg_;
 	arg_ = NULL;
+	
+	str_println_move(
+		str_cat_move(
+			str_new_c("starting thread with "),
+			threadInit_tostr_move((threadInit_t *)this->arg)
+		)
+	);
 
 	threadEnd_t * const ret = threadEnd_new();
 	ret->somethingElse = 53;
 	{
 		str_t * s = threadEnd_tostr(ret);
 		printf("ending thread and returning %s\n", s->ptr);
-		str_del(s);
+		str_delete(s);
 	}
 	return ret;
 }
 
 int main() {
-	int err = 0;
+	//int err = 0;
 
-	pthread_t th;
+	thread_t * t = NULL;
+	//pthread_t th;
 	{
 		//pass this to pthread_create, expect it to free this once it's done
 		threadInit_t * const initArg = threadInit_new();
@@ -450,13 +475,17 @@ int main() {
 		
 		str_println_move(str_cat_move(str_new_c("creating threadArg_t "), threadInit_tostr(initArg)));
 		
-		err = pthread_create(&th, NULL, threadStart, (void*)initArg);
-		if (err) fail("pthread_create failed with error %d\n", err);
+		t = thread_new(threadStart, (void*)initArg);
+		//err = pthread_create(&th, NULL, threadStart, (void*)initArg);
+		//if (err) fail("pthread_create failed with error %d\n", err);
 	}
 	
-	void * ret = NULL;
-	err = pthread_join(th, &ret);
-	if (err) fail("pthread_join failed with error %d\n", err);
+	//void * ret = NULL;
+	//err = pthread_join(th, &ret);
+	//if (err) fail("pthread_join failed with error %d\n", err);
+	void * ret = thread_join(t);
+	thread_delete(t);
+	t = NULL;
 
 	str_println_move(
 		str_cat_move(
