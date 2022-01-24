@@ -5,10 +5,10 @@ CFLAGS = -Wall
 .PHONY: all
 all: main
 
-main.o: main.c
+main.o: main.c *.h
 	$(CC) -c -o main.o $(CFLAGS) main.c
 
-main.i: main.c
+main.i: main.c *.h
 	$(CC) -c -o main.i $(CFLAGS) -E main.c
 
 # find where the preprocessor is going wrong

@@ -1,19 +1,17 @@
 #pragma once
 
-typedef struct thread_s {
-	pthread_t pthread;
-	void * arg;
-} thread_t;
+typedef void *(*threadStart_t)(void *);
 
-DEFAULT_ALLOC(thread)
-DEFAULT_FREE(thread)
-DEFAULT_DESTROY(thread)
-DEFAULT_DELETE(thread)
+STRUCT(thread,
+	(thread, pthread_t, pthread, 0),
+	(thread, void*, arg, 1))
+
+MAKE_DEFAULTS(thread, ALLOC, FREE, DESTROY, DELETE)
 
 void thread_init(
 	thread_t * const t,
 	// extra args forwarded
-	void * (*threadStart)(void *),
+	threadStart_t threadStart,
 	void * arg
 ) {
 	t->arg = arg;
@@ -21,15 +19,29 @@ void thread_init(
 	if (err) fail("pthread_create failed with error %d\n", err);
 }
 
-thread_t * thread_new(
-	// extra args forwarded
-	void * (*threadStart)(void *),
-	void * arg
-) {
-	thread_t * t = thread_alloc();
-	thread_init(t, threadStart, arg);
-	return t;
+
+//(void*, arg) => void * arg
+#define UNPACK2(a, b)	a b
+#define MAKE_NEW_FOR_INIT_ARGS(tuple, extra)	UNPACK2 tuple
+
+#define TUPLE_ARG2(a, b)	b
+#define MAKE_NEW_FOR_INIT_CALL(tuple, extra)	TUPLE_ARG2 tuple
+
+#define MAKE_NEW_FOR_INIT(type, initSuffix, ...)\
+type##_t * type##_new##initSuffix(\
+FOR_EACH(MAKE_NEW_FOR_INIT_ARGS, COMMA, EMPTY, __VA_ARGS__)\
+) {\
+	type##_t * obj = type##_alloc();\
+	type##_init(obj,\
+FOR_EACH(MAKE_NEW_FOR_INIT_CALL, COMMA, EMPTY, __VA_ARGS__)\
+	);\
+	return obj;\
 }
+
+MAKE_NEW_FOR_INIT(thread, ,
+	(threadStart_t, threadStart),
+	(void *, arg))
+
 
 void * thread_join(
 	thread_t * const t
