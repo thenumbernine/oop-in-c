@@ -114,27 +114,29 @@ FOR_EACH(MAKE_REFL_FIELD, EMPTY, EMPTY, __VA_ARGS__) \
 //class.h
 
 
+// c++ equiv of type::type()
 #define DEFAULT_INIT(type)\
 void type##_init(type##_t * const obj) {}
 
+// c++ equiv of type::~type()
 #define DEFAULT_DESTROY(type)\
 void type##_destroy(type##_t * const obj) {}
 
 //class allocator -- for returning the  memory of the class
-// c++ equiv of void * ::operator new(size_t)
+// c++ equiv of void * type::operator new(size_t)
 #define DEFAULT_ALLOC(type)\
 type##_t * type##_alloc() {\
 	return new(type##_t);\
 }
 
-// c++ equiv of void ::operator delete(void *)
+// c++ equiv of void type::operator delete(void *)
 #define DEFAULT_FREE(type)\
 void type##_free(type##_t * const obj) {\
 	delete(obj);\
 }
 
-//c++ equiv of "new str(fmt, ...)"
-//calls _alloc and then calls _init*
+//c++ equiv of "new type()"
+//calls type_alloc and then calls type_init
 #define DEFAULT_NEW(type)\
 type##_t * type##_new() {\
 	type##_t * obj = type##_alloc();\
@@ -142,8 +144,8 @@ type##_t * type##_new() {\
 	return obj;\
 }
 
-// _del calls _destroy and then _free
-// c++ equiv of "delete str"
+// type_del calls type_destroy and then type_free
+// c++ equiv of "delete type"
 #define DEFAULT_DEL(type)\
 void type##_del(type##_t * const o) {\
 	if (o) type##_destroy(o);\
@@ -151,6 +153,9 @@ void type##_del(type##_t * const o) {\
 }
 
 
+//make a list of defaults.
+//usage: MAKE_DEFAULTS(type, DEFAULT1, DEFAULT2, ...)
+//calls MAKE_DEFAULT1(type), MAKE_DEFAULT2(type),. ..
 #define MAKE_DEFAULT(name, type) CONCAT(DEFAULT_,name)(type)
 #define MAKE_DEFAULTS(type, ...)\
 FOR_EACH(MAKE_DEFAULT, EMPTY, type, __VA_ARGS__)
@@ -310,9 +315,7 @@ void str_destroy(str_t * const s) {
 	s->len = 0;
 }
 
-DEFAULT_ALLOC(str)		//str_alloc
-DEFAULT_FREE(str)		//str_free
-DEFAULT_DEL(str)	//str_del
+MAKE_DEFAULTS(str, ALLOC, FREE, DEL)
 
 //c++ equiv of "new str(cstr)"
 //calls _alloc and then calls _init*
@@ -383,11 +386,6 @@ thread_t * thread_new(
 //main.cpp
 
 
-STRUCT(threadInit,
-	(threadInit, int, something, 0)
-)
-
-
 #if 0
 //can you turn ((a, b), (c,d)) into (a,b,c,d) in preprocessor?
 void test( 
@@ -412,52 +410,18 @@ FOR_EACH(MAKEFUNC, EMPTY, everyoneGetsIt, a, b, c)
 #endif
 
 
-#if 0	//works, but very redundant
-
-DEFAULT_INIT(threadInit)				//threadInit::threadInit
-DEFAULT_DESTROY(threadInit)				//threadInit::~threadInit()
-DEFAULT_ALLOC(threadInit)				//threadInit::operator new()
-DEFAULT_FREE(threadInit)				//threadInit::operator delete()
-DEFAULT_NEW(threadInit)					//new threadInit()
-DEFAULT_DEL(threadInit)					//delete threadInit()
-DEFAULT_TOSTR(threadInit)				//tostring(threadInit)
-
-#elif 0	//works, but looks ugly
-
-#define MAKE_DEFAULT_I(type, method)	CONCAT(DEFAULT_, method)(type)
-#define MAKE_DEFAULT(x, extra)		MAKE_DEFAULT_I x
-#define MAKE_DEFAULTS(...)\
-FOR_EACH(MAKE_DEFAULT, EMPTY, EMPTY, __VA_ARGS__)
-
-MAKE_DEFAULTS(
-	(threadInit, INIT),
-	(threadInit, DESTROY),
-	(threadInit, ALLOC),
-	(threadInit, FREE),
-	(threadInit, NEW),
-	(threadInit, DEL),
-	(threadInit, TOSTR))
-
-#elif 1	//needs macro-for extra args
-
+STRUCT(threadInit,
+	(threadInit, int, something, 0)
+)
 MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DEL, TOSTR)
-
-#endif
-
-MAKE_MOVE(str, threadInit, tostr)		// make threadInit_tostr_move from threadInit_tostr
+MAKE_MOVE(str, threadInit, tostr)
 
 
 STRUCT(threadEnd,
-	(threadEnd, int, somethingElse, 0))
-
-DEFAULT_INIT(threadEnd)					//threadEnd::threadEnd
-DEFAULT_DESTROY(threadEnd)				//threadEnd::~threadEnd
-DEFAULT_ALLOC(threadEnd)				//threadEnd::operator new()
-DEFAULT_FREE(threadEnd)					//threadEnd::operator delete
-DEFAULT_NEW(threadEnd)					//new threadEnd
-DEFAULT_DEL(threadEnd)					//delete threadEnd
-DEFAULT_TOSTR(threadEnd)				//tostring(threadEnd)
-MAKE_MOVE(str, threadEnd, tostr)		// make threadEnd_tostr_move from threadEnd_tostr
+	(threadEnd, int, somethingElse, 0)
+)
+MAKE_DEFAULTS(threadEnd, INIT, DESTROY, ALLOC, FREE, NEW, DEL, TOSTR)
+MAKE_MOVE(str, threadEnd, tostr)
 
 
 void * threadStart(void * arg_) {
