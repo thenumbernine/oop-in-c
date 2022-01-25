@@ -34,42 +34,48 @@ typedef struct reflect_s {
 
 
 
-#define MAKE_FIELDTYPE_I2(ftype, fieldName, index, className) \
-typedef ftype className##_fieldType_##index;
+#define MAKE_FIELDTYPE_I2(ftype, fieldName, index, classname) \
+typedef ftype classname##_fieldType_##index;
 
-#define MAKE_FIELDTYPE(tuple, className) \
-APPLY(MAKE_FIELDTYPE_I2, EXPAND3 tuple, className)
+#define MAKE_FIELDTYPE(tuple, classname) \
+APPLY(MAKE_FIELDTYPE_I2, EXPAND3 tuple, classname)
 
 #define MAKE_FIELD_I(fieldType, fieldName, index) fieldType fieldName;
 
 #define MAKE_FIELD(tuple, extra) MAKE_FIELD_I tuple
 
-#define MAKE_REFL_FIELD_I2(fieldType, fieldName, index, className) \
+#define MAKE_REFL_FIELD_I2(fieldType, fieldName, index, classname) \
 { \
-	.offset = offsetof(className##_t, fieldName), \
+	.offset = offsetof(classname##_t, fieldName), \
 	.size = sizeof(fieldType), \
 	.name = #fieldName, \
 	/*.type = &fieldType##_type,*/ /*hmm, but types can be invalid names, ex: pointers*/ \
 },
 
-#define MAKE_REFL_FIELD(tuple, className) \
-APPLY(MAKE_REFL_FIELD_I2, EXPAND3 tuple, className)
+#define MAKE_REFL_FIELD(tuple, classname) \
+APPLY(MAKE_REFL_FIELD_I2, EXPAND3 tuple, classname)
 
 
-#define STRUCT(className, ...) \
+#define STRUCT(classname, ...) \
 \
 /* <class>_fieldType_<index>; */\
 \
-FOR_EACH(MAKE_FIELDTYPE, EMPTY, className, __VA_ARGS__) \
+FOR_EACH(MAKE_FIELDTYPE, EMPTY, classname, __VA_ARGS__) \
 \
 /* the class itself: */\
 \
-typedef struct className##_s {\
+typedef struct classname##_s {\
 FOR_EACH(MAKE_FIELD, EMPTY, EMPTY, __VA_ARGS__) \
-} className##_t; \
+} classname##_t; \
 \
 /* reflection fields */\
 \
-reflect_t className##_fields[] = { \
-FOR_EACH(MAKE_REFL_FIELD, EMPTY, className, __VA_ARGS__) \
+reflect_t classname##_fields[] = { \
+FOR_EACH(MAKE_REFL_FIELD, EMPTY, classname, __VA_ARGS__) \
 };
+
+
+// vtable.h?
+
+
+//#define VTABLE(classname
