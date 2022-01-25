@@ -6,6 +6,8 @@
 #include <pthread.h>
 
 
+void * safealloc(size_t size);
+
 #include "struct.h"
 #include "class.h"//needs str but comes before str
 #include "move.h"
@@ -13,6 +15,16 @@
 #include "str.h"
 #include "thread.h"
 #include "file.h"
+
+void * safealloc(size_t size) {
+	void * const ptr = calloc(size, 1);
+	if (!ptr) {
+		fail("malloc failed for %u bytes\n", size);
+		return NULL;
+	}
+	return ptr;
+}
+
 
 
 #if 0
@@ -44,7 +56,7 @@ STRUCT(threadInit,
 	(int, something, 0)
 )
 MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DELETE, TOSTR)
-MAKE_MOVE(str, threadInit, tostr)
+MAKE_MOVE(str_t *, threadInit, tostr)
 
 
 //return value for our thread_t routine
@@ -52,20 +64,33 @@ STRUCT(threadEnd,
 	(int, somethingElse, 0)
 )
 MAKE_DEFAULTS(threadEnd, INIT, DESTROY, ALLOC, FREE, NEW, DELETE, TOSTR)
-MAKE_MOVE(str, threadEnd, tostr)
+MAKE_MOVE(str_t *, threadEnd, tostr)
 
 
 void * threadStart(void * arg_) {
 	assert(arg_);
 	thread_t * const this = (thread_t *)arg_;
 	arg_ = NULL;
-	
+
+#if 1
 	str_println_move(
 		str_cat_move(
 			str_new_c("starting thread with "),
 			threadInit_tostr_move((threadInit_t *)this->arg)
 		)
 	);
+#else
+	
+	call(
+		str_new_c("starting thread with "),
+		"cat_move",
+		call(
+			(threadInit_t*)this->arg,
+			"tostr_move"
+		)
+	)
+
+#endif
 
 	threadEnd_t * const ret = threadEnd_new();
 	ret->somethingElse = 53;
@@ -80,7 +105,7 @@ void * threadStart(void * arg_) {
 int main() {
 	//int err = 0;
 
-	thread_t * t = NULL;
+	void * ret = NULL;
 	//pthread_t th;
 	{
 		//pass this to pthread_create, expect it to free this once it's done
@@ -89,17 +114,14 @@ int main() {
 		
 		str_println_move(str_cat_move(str_new_c("creating threadArg_t "), threadInit_tostr(initArg)));
 		
-		t = thread_new(threadStart, (void*)initArg);
+		thread_t * t = thread_new(threadStart, (void*)initArg);
 		//err = pthread_create(&th, NULL, threadStart, (void*)initArg);
 		//if (err) fail("pthread_create failed with error %d\n", err);
-	}
 	
-	//void * ret = NULL;
-	//err = pthread_join(th, &ret);
-	//if (err) fail("pthread_join failed with error %d\n", err);
-	void * ret = thread_join(t);
-	thread_delete(t);
-	t = NULL;
+		//err = pthread_join(th, &ret);
+		//if (err) fail("pthread_join failed with error %d\n", err);
+		ret = thread_join_move(t);
+	}
 
 	str_println_move(
 		str_cat_move(

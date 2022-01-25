@@ -3,6 +3,15 @@
 #include "new.h"	//new, delete
 #include "macros.h"	//FOR_EACH, CONCAT
 
+/*
+class_alloc = void * type::operator new(size_t)
+class_free = class::operator delete(void *)
+class_init = class::class()
+class_destroy = class::~class()
+class_new = new class();		... calls _alloc, sets vtable, calls _init
+class_delete = delete class();	... calls _destroy and _free
+class_tostr = to_string(class);
+*/
 
 //class allocator -- for returning the  memory of the class
 // c++ equiv of void * type::operator new(size_t)
@@ -25,6 +34,15 @@ void type##_init(type##_t * const obj) {}
 #define DEFAULT_DESTROY(type)\
 void type##_destroy(type##_t * const obj) {}
 
+//c++ equiv of "new type()"
+//calls type_alloc and then calls type_init
+#define DEFAULT_NEW(type)\
+type##_t * type##_new() {\
+	type##_t * obj = type##_alloc();\
+	type##_init(obj);\
+	return obj;\
+}
+
 // type_delete calls type_destroy and then type_free
 // c++ equiv of "delete type"
 #define DEFAULT_DELETE(type)\
@@ -42,19 +60,19 @@ str_t * type##_tostr(\
 ) {\
 	str_t * s = str_new_c(#type);\
 	if (!obj) {\
-		return str_cat_move(s, str_new_c("NULL"));\
+		return s->v->cat_move(s, str_new_c("NULL"));\
 	}\
-	s = str_cat_move(s, str_new("%p={", obj));\
+	s = s->v->cat_move(s, str_new("%p={", obj));\
 	/* TODO HERE FOR_EACH over the reflect fields, and then call each member's _tostr() */\
 	reflect_t * endOfFields = type##_fields + numberof(type##_fields);\
 	for (reflect_t * field = type##_fields; field < endOfFields; ++field) {\
 		if (field > type##_fields) {\
-			s = str_cat_move(s, str_new_c(", "));\
+			s = s->v->cat_move(s, str_new_c(", "));\
 		}\
-		s = str_cat_move(s, str_new("%s=", field->name));\
+		s = s->v->cat_move(s, str_new("%s=", field->name));\
 /*		s = str_cat_move(s, tostring(  ));*/\
 	}\
-	s = str_cat_move(s, str_new_c("}"));\
+	s = s->v->cat_move(s, str_new_c("}"));\
 	return s;\
 }
 
@@ -65,17 +83,6 @@ str_t * type##_tostr(\
 #define MAKE_DEFAULT(name, type) CONCAT(DEFAULT_,name)(type)
 #define MAKE_DEFAULTS(type, ...)\
 FOR_EACH(MAKE_DEFAULT, EMPTY, type, __VA_ARGS__)
-
-
-
-//c++ equiv of "new type()"
-//calls type_alloc and then calls type_init
-#define DEFAULT_NEW(type)\
-type##_t * type##_new() {\
-	type##_t * obj = type##_alloc();\
-	type##_init(obj);\
-	return obj;\
-}
 
 
 #define MAKE_NEW_FOR_INIT_ARGS(tuple, extra)	UNPACK2 tuple	
@@ -91,6 +98,7 @@ FOR_EACH(MAKE_NEW_FOR_INIT_ARGS, COMMA, EMPTY, __VA_ARGS__)\
 	type##_init##initSuffix(obj,\
 FOR_EACH(MAKE_NEW_FOR_INIT_CALL, COMMA, EMPTY, __VA_ARGS__)\
 	);\
+	obj->v = &type##_vtable;\
 	return obj;\
 }
 
