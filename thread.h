@@ -2,15 +2,9 @@
 
 typedef void *(*threadStart_t)(void *);
 
-#if 0
 STRUCT(thread,
-	(thread, pthread_t, pthread, 0),
-	(thread, void*, arg, 1))
-#else
-STRUCT2(thread,
 	(pthread_t, pthread, 0),
 	(void*, arg, 1))
-#endif
 
 MAKE_DEFAULTS(thread, ALLOC, FREE, DESTROY, DELETE)
 

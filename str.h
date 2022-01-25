@@ -6,8 +6,8 @@
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 STRUCT(str,
-	(str, size_t, len, 0),		// len is the blob length (not including the \0 at the end)
-	(str, char *, ptr, 1)		// ptr is len+1 in size for strlen strs
+	(size_t, len, 0),		// len is the blob length (not including the \0 at the end)
+	(char *, ptr, 1)		// ptr is len+1 in size for strlen strs
 )
 
 

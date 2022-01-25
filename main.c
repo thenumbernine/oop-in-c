@@ -41,7 +41,7 @@ FOR_EACH(MAKEFUNC, EMPTY, everyoneGetsIt, a, b, c)
 
 //arg of our thread_t init
 STRUCT(threadInit,
-	(threadInit, int, something, 0)
+	(int, something, 0)
 )
 MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DELETE, TOSTR)
 MAKE_MOVE(str, threadInit, tostr)
@@ -49,7 +49,7 @@ MAKE_MOVE(str, threadInit, tostr)
 
 //return value for our thread_t routine
 STRUCT(threadEnd,
-	(threadEnd, int, somethingElse, 0)
+	(int, somethingElse, 0)
 )
 MAKE_DEFAULTS(threadEnd, INIT, DESTROY, ALLOC, FREE, NEW, DELETE, TOSTR)
 MAKE_MOVE(str, threadEnd, tostr)
