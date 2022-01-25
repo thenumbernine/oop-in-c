@@ -12,7 +12,7 @@
 #include "fail.h"
 #include "str.h"
 #include "thread.h"
-
+#include "file.h"
 
 
 #if 0
