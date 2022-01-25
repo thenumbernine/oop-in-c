@@ -1,11 +1,9 @@
 #pragma once
 
 
-#define EMPTY		//for when a macro argument needs to be empty
 #define COMMA ,		//for when a macro argument needs to be a comma
 
 #define DEFER(...)				__VA_ARGS__
-
 
 #define UNPACK2(a, b)	a b
 
@@ -24,7 +22,7 @@
 //https://stackoverflow.com/questions/1872220/is-it-possible-to-iterate-over-arguments-in-variadic-macros
 // but in FOR_EACH replace "x, ..." with "..." and "x, __VA_ARGS__" with "__VA_ARGS__"
 //https://stackoverflow.com/questions/65997123/generalized-iteration-over-arguments-of-macro-in-the-c-preprocessor
-// looks like you need the extra DEFER(between) for when "between" is set to EMPTY
+// looks like you need the extra DEFER(between) for when "between" is set to an empty arg
 // otherwise the empty string will screw up the number of args / argument order
 // "extra" is an extra parameter/tuple for the for_each scope that you might want all iterators to see
 
@@ -54,7 +52,7 @@
 // converts macro tuple args into a single expanded list:
 // (a, b), (c, d, e), (f) => a, b, c, d, e, f
 #define EXPAND(...)\
-FOR_EACH(EXPAND_I, COMMA, EMPTY, __VA_ARGS__)
+FOR_EACH(EXPAND_I, COMMA, , __VA_ARGS__)
 
 
 #define numberof(x)		(sizeof(x)/sizeof(*(x)))

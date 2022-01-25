@@ -1,7 +1,23 @@
 #pragma once
 
+#include <stdlib.h> //fopen, fclose, fread, fwrite, ftell, fseek
+
+//TODO merge VTABLE and STRUCT
+
+VTABLE(file,
+	(alloc, file_t *, ()),
+	(free, void, (file_t *)),
+    (destroy, void, (file_t *)),
+    (init, void, (file_t *, char const * filename, char const * mode)),
+    (close, void, (file_t *)),
+    (read, str_t *, (file_t const *, size_t size)),
+    (write, void, (file_t const *, str_t const *)),
+    (tell, size_t, (file_t *)),
+    (seek, void, (file_t *, size_t offset, int whence)))
+
 STRUCT(file,
-	(FILE*, fp, 0))
+	(file_vtable_t *, v, 0),    //TODO auto-insert vtable as struct entry 0
+    (FILE*, fp, 1))             //TODO auto index and pass index into FOR_EACH
 
 void file_init(
 	file_t * const f,
@@ -11,6 +27,9 @@ void file_init(
 	f->fp = fopen(filename, mode);
 	if (!f->fp) fail("failed to open filename \"%s\" for mode \"%s\"", filename, mode);
 }
+MAKE_NEW_FOR_INIT(file, ,
+    (char const * const, filename),
+    (char const * const, mode))
 
 void file_close(
 	file_t * const f

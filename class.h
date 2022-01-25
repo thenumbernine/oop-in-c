@@ -83,7 +83,7 @@ str_t * type##_tostr(\
 //calls MAKE_DEFAULT1(type), MAKE_DEFAULT2(type),. ..
 #define MAKE_DEFAULT(name, type) CONCAT(DEFAULT_,name)(type)
 #define MAKE_DEFAULTS(type, ...)\
-FOR_EACH(MAKE_DEFAULT, EMPTY, type, __VA_ARGS__)
+FOR_EACH(MAKE_DEFAULT, , type, __VA_ARGS__)
 
 
 #define MAKE_NEW_FOR_INIT_ARGS(tuple, extra)	UNPACK2 tuple	
@@ -91,13 +91,14 @@ FOR_EACH(MAKE_DEFAULT, EMPTY, type, __VA_ARGS__)
 
 //type_t * type_new(...) => calls type_alloc, type_init(...) 
 //EMPTY doesn't work for 2nd suffix arg, gotta use , ,
+// in fact, I've found situations where EMPTY fails but none where it is necessary ...
 #define MAKE_NEW_FOR_INIT(type, initSuffix, ...)\
 type##_t * type##_new##initSuffix(\
-FOR_EACH(MAKE_NEW_FOR_INIT_ARGS, COMMA, EMPTY, __VA_ARGS__)\
+FOR_EACH(MAKE_NEW_FOR_INIT_ARGS, COMMA, , __VA_ARGS__)\
 ) {\
 	type##_t * obj = type##_alloc();\
 	type##_init##initSuffix(obj \
-FOR_EACH(MAKE_NEW_FOR_INIT_CALL, EMPTY, EMPTY, __VA_ARGS__)\
+FOR_EACH(MAKE_NEW_FOR_INIT_CALL, , , __VA_ARGS__)\
 	);\
 	obj->v = &type##_vtable;\
 	return obj;\

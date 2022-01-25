@@ -1,10 +1,5 @@
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>	//va_start, va_end, vsnprintf
-#include <string.h>	//strlen
-#include <pthread.h>
-
+#include <assert.h>	//assert
+#include <stddef.h>	//size_t
 
 void * safealloc(size_t size);
 
@@ -25,45 +20,34 @@ void * safealloc(size_t size) {
 	return ptr;
 }
 
-
-
-#if 0
-//can you turn ((a, b), (c,d)) into (a,b,c,d) in preprocessor?
-void test( 
-	EXPAND((int a, int b, int c), (int d, int e))
-) {
-	printf("%d %d %d %d %d\n", a, b, c, d, e);
-}
-//ok now can you use this in a FOR_EACH
-#endif
-#if 1 //yeah but can you defer?
-#define TEST2(a,b,c,d) 		void test(a, b, c, d)
-#define CONCATV1(e,f,g,h) 	TEST2(e,f,g,h)
-#define CONCATV(tuple) 		CONCATV1(tuple)	//looks like to use the expanded args you just gotta defer once like so
-#define TEST(tuple, extra) 	CONCATV(EXPAND(tuple, (extra)))
-TEST((int a, int b, int c), int d) {
-	printf("%d %d %d %d\n", a, b, c, d);
-}
-#endif
-#if 1 //ok so defer works, how about defer expand for loop?
-#define MAKEFUNC(suffix, extra)	void func_##suffix(int n, int extra) {}
-FOR_EACH(MAKEFUNC, EMPTY, everyoneGetsIt, a, b, c)
-#endif
-
-
 //arg of our thread_t init
-STRUCT(threadInit,
-	(int, something, 0)
+VTABLE(threadInit,
+	(alloc, threadInit_t *, ()),
+	(free, void, (threadInit_t *)),
+	(destroy, void, (threadInit_t *)),
+	(init, void, (threadInit_t *)),
+	(tostr, str_t *, (threadInit_t const *))
 )
-MAKE_DEFAULTS(threadInit, INIT, DESTROY, ALLOC, FREE, NEW, DELETE, TOSTR)
+STRUCT(threadInit,
+	(threadInit_vtable_t *, v, 0),
+	(int, something, 1)
+)
+MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTR, NEW, DELETE)
 MAKE_MOVE(str_t *, threadInit, tostr)
 
 
 //return value for our thread_t routine
+VTABLE(threadEnd,
+	(alloc, threadEnd_t *, ()),
+	(free, void, (threadEnd_t *)),
+	(destroy, void, (threadEnd_t *)),
+	(init, void, (threadEnd_t *)),
+	(tostr, str_t *, (threadEnd_t const *))
+)
 STRUCT(threadEnd,
 	(int, somethingElse, 0)
 )
-MAKE_DEFAULTS(threadEnd, INIT, DESTROY, ALLOC, FREE, NEW, DELETE, TOSTR)
+MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTR, NEW, DELETE)
 MAKE_MOVE(str_t *, threadEnd, tostr)
 
 
@@ -80,7 +64,9 @@ void * threadStart(void * arg_) {
 		)
 	);
 #else
-	
+
+	//TODO how to call a member method without referencing the object twice ...
+
 	call(
 		str_new_c("starting thread with "),
 		"cat_move",
