@@ -16,18 +16,18 @@ typedef struct reflect_s {
 //must have same number of params as the tuple passed into the FOR_EACH
 #define EXPAND3(a,b,c) a, b, c
 
+#define APPLY(macro, ...) macro(__VA_ARGS__)
+
 
 #define MAKE_FIELDTYPE_I2(ftype, fieldName, index, className) typedef ftype className##_fieldType_##index;
-#define MAKE_FIELDTYPE_I(a,b) MAKE_FIELDTYPE_I2(a,b)	//expand tuple in "a"
-#define MAKE_FIELDTYPE(tuple, className) MAKE_FIELDTYPE_I(EXPAND3 tuple, className)
-
+#define MAKE_FIELDTYPE(tuple, className) APPLY(MAKE_FIELDTYPE_I2, EXPAND3 tuple, className)
 
 #define MAKE_FIELD_I(fieldType, fieldName, index) fieldType fieldName;
 #define MAKE_FIELD(x, extra) MAKE_FIELD_I x
 
 #define MAKE_REFL_FIELD_I2(fieldType, fieldName, index, className) { .offset=offsetof(className##_t, fieldName), .size=sizeof(fieldType), .name=#fieldName},
-#define MAKE_REFL_FIELD_I(a,b) MAKE_REFL_FIELD_I2(a,b)	//expand tuple in "a"
-#define MAKE_REFL_FIELD(tuple, className) MAKE_REFL_FIELD_I(EXPAND3 tuple, className)
+#define MAKE_REFL_FIELD(tuple, className) APPLY(MAKE_REFL_FIELD_I2, EXPAND3 tuple, className)
+
 
 #define STRUCT(className, ...) \
 FOR_EACH(MAKE_FIELDTYPE, EMPTY, className, __VA_ARGS__) \
