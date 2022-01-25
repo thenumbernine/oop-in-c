@@ -34,8 +34,9 @@ typedef struct {
 	str_t * (*alloc)();
 	void (*free)(str_t *);
 	void (*destroy)(str_t *);
+	void (*init)(str_t *);
 	//how about function prototype standards?
-	void (*init)(str_t *, char const * const fmt, ...);		//default ctor
+	void (*init_fmt)(str_t *, char const * const fmt, ...);		//default ctor
 	void (*init_c)(str_t *, char const * const cstr);
 	void (*init_size)(str_t *, size_t size);
 	str_t * (*cat)(str_t const * a, str_t const * b);
@@ -53,9 +54,26 @@ STRUCT(str,
 	(char *, ptr, 2)			// ptr is len+1 in size for strlen strs
 )
 
+//_destroy is in-place / object dtors
+//deallocate members
+//c++ eqiv of destructor : str::~str
+void str_destroy(str_t * const s) {
+	if (!s) return;
+	delete(s->ptr);
+	s->ptr = NULL;
+}
+
+MAKE_DEFAULTS(str, ALLOC, FREE, DELETE)
+
+void str_init(str_t * const s) {
+	s->len = 0;
+	s->ptr = NULL;
+}
+MAKE_NEW_FOR_INIT_NOARGS(str, )	//TODO make this work with MAKE_NEW_FOR_INIT with no args
+
 //can't forward va-args, so ... 
 //  says: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
-#define str_init_body(s) {\
+#define str_init_fmt_body(s) {\
 	assert(s);\
 	/*should we assert the mem in is dirty, or should we assert it is initialized and cleared?*/\
 	assert(!s->ptr);\
@@ -87,20 +105,9 @@ void str_init_c(str_t * const s, char const * const cstr) {
 //allocate members
 //c++ eqiv of constructor: str::str
 //https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
-void str_init(str_t * const s, char const * const fmt, ...) {
-	str_init_body(s);
+void str_init_fmt(str_t * const s, char const * const fmt, ...) {
+	str_init_fmt_body(s);
 }
-
-//_destroy is in-place / object dtors
-//deallocate members
-//c++ eqiv of destructor : str::~str
-void str_destroy(str_t * const s) {
-	if (!s) return;
-	delete(s->ptr);
-	s->ptr = NULL;
-}
-
-MAKE_DEFAULTS(str, ALLOC, FREE, DELETE)
 
 //str_new_c => calls str_alloc, str_init_c
 //c++ equiv of "new str(cstr)"
@@ -112,25 +119,17 @@ MAKE_NEW_FOR_INIT(str, _c,
 //can't use DEFAULT_NEW since it uses va_list which can't be forwarded
 	// can't forward va-args so copy the above body ...
 	// ... so use a macro for the _init body instead
-str_t * str_new(char const * const fmt, ...) {
+str_t * str_new_fmt(char const * const fmt, ...) {
 	str_t * s = str_alloc();
 	s->v = &str_vtable;
-	str_init_body(s);
+	str_init_fmt_body(s);
 	return s;
 }
 #else
 // C vararg messes up our arg forwarding 
 // so does the macro being called "_body" but I guess we can get around that
-MAKE_NEW_FOR_INIT(str, EMPTY,
+MAKE_NEW_FOR_INIT(str, _fmt,
     (char const * const, fmt COMMA ...))
-#endif
-
-#if 0
-void str_init_empty(str_t * const s) {
-	s->len = 0;
-	s->ptr = NULL;
-}
-MAKE_NEW_FOR_INIT(str, _empty)
 #endif
 
 void str_init_size(str_t * const s, size_t size) {
@@ -140,13 +139,7 @@ void str_init_size(str_t * const s, size_t size) {
 MAKE_NEW_FOR_INIT(str, _size, (size_t, size))
 
 str_t * str_cat(str_t const * const a, str_t const * const b) {
-	//TODO here str_new_SOMETHING
-#if 1
-	str_t * const s = str_alloc();
-	s->v = &str_vtable;
-#else
-	str_t * const s = str_init_empty();
-#endif
+	str_t * const s = str_new();
 	s->len = a->len + b->len;	//because for now len includes the null term
 	
 	s->ptr = newarray(char, s->len + 1);
@@ -170,6 +163,7 @@ str_vtable_t str_vtable = {
 	.free = str_free,
 	.destroy = str_destroy,
 	.init = str_init,
+	.init_fmt = str_init_fmt,
 	.init_c = str_init_c,
 	.init_size = str_init_size,
 	.cat = str_cat,
