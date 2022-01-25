@@ -36,7 +36,6 @@ void type##_delete(type##_t * const o) {\
 
 //TODO this reference "str_cat_move"
 //so be sure to include "str.h" if you use this.
-
 #define DEFAULT_TOSTR(type)\
 str_t * type##_tostr(\
 	type##_t const * const obj\
@@ -60,7 +59,6 @@ str_t * type##_tostr(\
 }
 
 
-
 //make a list of defaults.
 //usage: MAKE_DEFAULTS(type, DEFAULT1, DEFAULT2, ...)
 //calls MAKE_DEFAULT1(type), MAKE_DEFAULT2(type),. ..
@@ -80,16 +78,8 @@ type##_t * type##_new() {\
 }
 
 
-
-//(void*, arg) => void * arg
-#define UNPACK2(a, b)	a b
-
-//this doesn't do the same thing as DEFER tuple
 #define MAKE_NEW_FOR_INIT_ARGS(tuple, extra)	UNPACK2 tuple	
-
-//(void*, arg) => arg
-#define TUPLE_ARG2(a, b)	b
-#define MAKE_NEW_FOR_INIT_CALL(tuple, extra)	TUPLE_ARG2 tuple
+#define MAKE_NEW_FOR_INIT_CALL(tuple, extra)	ARG2_OF_2 tuple
 
 //type_t * type_new(...) => calls type_alloc, type_init(...) 
 //EMPTY doesn't work for 2nd suffix arg, gotta use , ,
@@ -98,7 +88,7 @@ type##_t * type##_new##initSuffix(\
 FOR_EACH(MAKE_NEW_FOR_INIT_ARGS, COMMA, EMPTY, __VA_ARGS__)\
 ) {\
 	type##_t * obj = type##_alloc();\
-	type##_init(obj,\
+	type##_init##initSuffix(obj,\
 FOR_EACH(MAKE_NEW_FOR_INIT_CALL, COMMA, EMPTY, __VA_ARGS__)\
 	);\
 	return obj;\

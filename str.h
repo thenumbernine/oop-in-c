@@ -87,7 +87,6 @@ void str_destroy(str_t * const s) {
 	if (!s) return;
 	delete(s->ptr);
 	s->ptr = NULL;
-	s->len = 0;
 }
 
 MAKE_DEFAULTS(str, ALLOC, FREE, DELETE)
@@ -97,6 +96,7 @@ MAKE_DEFAULTS(str, ALLOC, FREE, DELETE)
 MAKE_NEW_FOR_INIT(str, _c,
 	(char const *, cstr))
 
+#if 1
 //can't use DEFAULT_NEW since it uses va_list which can't be forwarded
 	// can't forward va-args so copy the above body ...
 	// ... so use a macro for the _init body instead
@@ -105,6 +105,19 @@ str_t * str_new(char const * const fmt, ...) {
 	str_init_body(s);
 	return s;
 }
+#else
+// C vararg messes up our arg forwarding 
+// so does the macro being called "_body" but I guess we can get around that
+MAKE_NEW_FOR_INIT(str, EMPTY,
+    (char const * const, fmt COMMA ...))
+#endif
+
+void str_init_size(str_t * const s, size_t size) {
+	s->len = size;
+	s->ptr = newarray(char, size+1);
+}
+
+MAKE_NEW_FOR_INIT(str, _size, (size_t, size))
 
 str_t * str_cat(str_t const * const a, str_t const * const b) {
 	str_t * const s = str_alloc();

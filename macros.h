@@ -3,10 +3,17 @@
 
 #define EMPTY		//for when a macro argument needs to be empty
 #define COMMA ,		//for when a macro argument needs to be a comma
-#define LEFTPAR (
-#define RIGHTPAR )
 
 #define DEFER(...)				__VA_ARGS__
+
+
+#define UNPACK2(a, b)	a b
+
+#define ARG2_OF_2(a, b)	b
+
+#define EXPAND3(a,b,c) a, b, c
+
+#define APPLY(macro, ...) macro(__VA_ARGS__)
 
 
 #define CONCAT(arg1, arg2) CONCAT1(arg1, arg2)

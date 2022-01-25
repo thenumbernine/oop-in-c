@@ -1,0 +1,5 @@
+I found a pretty glaring memory leak in AMD OpenCL for Ubuntu using valgrind.
+So I set about trying to reproduce it.
+Got side-tracked and ended up writing my own version of heap-alloc-OOP in C.
+Added reflection.
+Went crazy with macros.
