@@ -25,15 +25,6 @@ void type##_init(type##_t * const obj) {}
 #define DEFAULT_DESTROY(type)\
 void type##_destroy(type##_t * const obj) {}
 
-//c++ equiv of "new type()"
-//calls type_alloc and then calls type_init
-#define DEFAULT_NEW(type)\
-type##_t * type##_new() {\
-	type##_t * obj = type##_alloc();\
-	type##_init(obj);\
-	return obj;\
-}
-
 // type_delete calls type_destroy and then type_free
 // c++ equiv of "delete type"
 #define DEFAULT_DELETE(type)\
@@ -69,9 +60,48 @@ str_t * type##_tostr(\
 }
 
 
+
 //make a list of defaults.
 //usage: MAKE_DEFAULTS(type, DEFAULT1, DEFAULT2, ...)
 //calls MAKE_DEFAULT1(type), MAKE_DEFAULT2(type),. ..
 #define MAKE_DEFAULT(name, type) CONCAT(DEFAULT_,name)(type)
 #define MAKE_DEFAULTS(type, ...)\
 FOR_EACH(MAKE_DEFAULT, EMPTY, type, __VA_ARGS__)
+
+
+
+//c++ equiv of "new type()"
+//calls type_alloc and then calls type_init
+#define DEFAULT_NEW(type)\
+type##_t * type##_new() {\
+	type##_t * obj = type##_alloc();\
+	type##_init(obj);\
+	return obj;\
+}
+
+
+
+//(void*, arg) => void * arg
+#define UNPACK2(a, b)	a b
+
+//this doesn't do the same thing as DEFER tuple
+#define MAKE_NEW_FOR_INIT_ARGS(tuple, extra)	UNPACK2 tuple	
+
+//(void*, arg) => arg
+#define TUPLE_ARG2(a, b)	b
+#define MAKE_NEW_FOR_INIT_CALL(tuple, extra)	TUPLE_ARG2 tuple
+
+//type_t * type_new(...) => calls type_alloc, type_init(...) 
+//EMPTY doesn't work for 2nd suffix arg, gotta use , ,
+#define MAKE_NEW_FOR_INIT(type, initSuffix, ...)\
+type##_t * type##_new##initSuffix(\
+FOR_EACH(MAKE_NEW_FOR_INIT_ARGS, COMMA, EMPTY, __VA_ARGS__)\
+) {\
+	type##_t * obj = type##_alloc();\
+	type##_init(obj,\
+FOR_EACH(MAKE_NEW_FOR_INIT_CALL, COMMA, EMPTY, __VA_ARGS__)\
+	);\
+	return obj;\
+}
+
+//DEFAULT_NEW(type) same as MAKE_NEW_FOR_INIT(type, )

@@ -1,4 +1,5 @@
-CC = clang
+#CC = clang
+CC = gcc
 CFLAGS = -Wall 
 #CFLAGS += -std=c89
 

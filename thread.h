@@ -2,9 +2,15 @@
 
 typedef void *(*threadStart_t)(void *);
 
+#if 0
 STRUCT(thread,
 	(thread, pthread_t, pthread, 0),
 	(thread, void*, arg, 1))
+#else
+STRUCT2(thread,
+	(pthread_t, pthread, 0),
+	(void*, arg, 1))
+#endif
 
 MAKE_DEFAULTS(thread, ALLOC, FREE, DESTROY, DELETE)
 
@@ -19,29 +25,9 @@ void thread_init(
 	if (err) fail("pthread_create failed with error %d\n", err);
 }
 
-
-//(void*, arg) => void * arg
-#define UNPACK2(a, b)	a b
-#define MAKE_NEW_FOR_INIT_ARGS(tuple, extra)	UNPACK2 tuple
-
-#define TUPLE_ARG2(a, b)	b
-#define MAKE_NEW_FOR_INIT_CALL(tuple, extra)	TUPLE_ARG2 tuple
-
-#define MAKE_NEW_FOR_INIT(type, initSuffix, ...)\
-type##_t * type##_new##initSuffix(\
-FOR_EACH(MAKE_NEW_FOR_INIT_ARGS, COMMA, EMPTY, __VA_ARGS__)\
-) {\
-	type##_t * obj = type##_alloc();\
-	type##_init(obj,\
-FOR_EACH(MAKE_NEW_FOR_INIT_CALL, COMMA, EMPTY, __VA_ARGS__)\
-	);\
-	return obj;\
-}
-
 MAKE_NEW_FOR_INIT(thread, ,
 	(threadStart_t, threadStart),
 	(void *, arg))
-
 
 void * thread_join(
 	thread_t * const t

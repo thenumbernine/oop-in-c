@@ -22,7 +22,6 @@ void str_destroy(str_t * s);
 
 
 // C functions
-str_t * str_new_c(char const * cstr);
 str_t * str_new(char const * fmt, ...);
 
 //_move means free args after you're done
@@ -47,7 +46,7 @@ void * safealloc(size_t size) {
 
 //can't forward va-args, so ... 
 //  says: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
-#define str_init_body() {\
+#define str_init_body(s) {\
 	assert(s);\
 	/*should we assert the mem in is dirty, or should we assert it is initialized and cleared?*/\
 	assert(!s->ptr);\
@@ -79,7 +78,7 @@ void str_init_c(str_t * const s, char const * const cstr) {
 //c++ eqiv of constructor: str::str
 //https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 void str_init(str_t * const s, char const * const fmt, ...) {
-	str_init_body();
+	str_init_body(s);
 }
 
 //deallocate members
@@ -93,20 +92,17 @@ void str_destroy(str_t * const s) {
 
 MAKE_DEFAULTS(str, ALLOC, FREE, DELETE)
 
+//str_new_c => calls str_alloc, str_init_c
 //c++ equiv of "new str(cstr)"
-//calls _alloc and then calls _init*
-str_t * str_new_c(char const * const cstr) {
-	str_t * s = str_alloc();
-	str_init_c(s, cstr);	//or in-place init?
-	return s;
-}
+MAKE_NEW_FOR_INIT(str, _c,
+	(char const *, cstr))
 
 //can't use DEFAULT_NEW since it uses va_list which can't be forwarded
-str_t * str_new(char const * const fmt, ...) {
-	str_t * s = str_alloc();
 	// can't forward va-args so copy the above body ...
 	// ... so use a macro for the _init body instead
-	str_init_body();
+str_t * str_new(char const * const fmt, ...) {
+	str_t * s = str_alloc();
+	str_init_body(s);
 	return s;
 }
 
@@ -127,5 +123,3 @@ void str_println(str_t * const s) {
 }
 
 MAKE_MOVE_VOID(str, println);	//str_println_move from str_println
-
-

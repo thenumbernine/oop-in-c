@@ -6,7 +6,7 @@
 #include <pthread.h>
 
 
-#include "struct-with-reflect.h"
+#include "struct.h"
 #include "class.h"//needs str but comes before str
 #include "move.h"
 #include "fail.h"
