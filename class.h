@@ -61,19 +61,19 @@ str_t * type##_tostr(\
 ) {\
 	str_t * s = str_new_c(#type);\
 	if (!obj) {\
-		return s->v->cat_move(s, str_new_c("NULL"));\
+		return str_cat_move(s, str_new_c("NULL"));\
 	}\
-	s = s->v->cat_move(s, str_new_fmt("%p={", obj));\
+	s = str_cat_move(s, str_new_fmt("%p={", obj));\
 	/* TODO HERE FOR_EACH over the reflect fields, and then call each member's _tostr() */\
 	reflect_t * endOfFields = type##_fields + numberof(type##_fields);\
 	for (reflect_t * field = type##_fields; field < endOfFields; ++field) {\
 		if (field > type##_fields) {\
-			s = s->v->cat_move(s, str_new_c(", "));\
+			s = str_cat_move(s, str_new_c(", "));\
 		}\
-		s = s->v->cat_move(s, str_new_fmt("%s=", field->name));\
+		s = str_cat_move(s, str_new_fmt("%s=", field->name));\
 /*		s = str_cat_move(s, tostring(  ));*/\
 	}\
-	s = s->v->cat_move(s, str_new_c("}"));\
+	s = str_cat_move(s, str_new_c("}"));\
 	return s;\
 }
 

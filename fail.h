@@ -8,4 +8,5 @@ void fail_cstr(char const * const s) {
 	exit(1);
 }
 
-#define fail(...)	(fail_cstr(str_new_fmt(__VA_ARGS__)->ptr))	//leaks the allocated string
+//this leaks the allocated string, but then it calls exit(1) so ...
+#define fail(...)	(fail_cstr(str_new_fmt(__VA_ARGS__)->ptr))	
