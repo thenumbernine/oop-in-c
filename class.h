@@ -17,7 +17,7 @@ class_tostr(obj) <=> to_string(obj);
 // c++ equiv of void * type::operator new(size_t)
 #define DEFAULT_ALLOC(type)\
 type##_t * type##_alloc() {\
-	return new(type##_t);\
+	return newprim(type##_t);\
 }
 
 // c++ equiv of void type::operator delete(void *)
@@ -36,18 +36,18 @@ void type##_destroy(type##_t * const obj) {}
 
 //c++ equiv of "new type()"
 //type_t * type_new(...) => calls type_alloc, type_init(...) 
-// C lambda is GNU-specific
+//can't forward va-args in C.  says in: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
+// so to get around this, I'm using C lambda GCC specific trick:
 #define newobj(type, suffix, ...) ({\
-	type##_vtable_t const * const v = &type##_vtable;\
-	type##_t * obj = v->alloc();\
-	obj->v = v;\
-	v->init##suffix(obj VA_ARGS(__VA_ARGS__));\
+	type##_t * const obj = type##_vtable.alloc();\
+	obj->v = &type##_vtable;\
+	type##_vtable.init##suffix(obj VA_ARGS(__VA_ARGS__));\
 	obj;\
 })
 
 #if 0
 #define newobj3(type, vtable, init, ...)	TODO
-#define newobj2(type, vtable, suffix, ...)	newobj3(type, vtable, vtable->init##suffix, __VA_ARGS__)
+#define newobj2(type, vtable, suffix, ...)	newobj3(type, vtable, (vtable)->init##suffix, __VA_ARGS__)
 #define newobj(type, suffix, ...)			newobj2(type, &type##_vtable, suffix, __VA_ARGS__)
 #endif
 

@@ -85,33 +85,29 @@ void str_init_c(str_t * const s, char const * const cstr) {
 	memcpy(s->ptr, cstr, s->len + 1);
 }
 
-//can't forward va-args, so ... 
-//  says: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
-#define str_init_fmt_body(s) {\
-	assert(s);\
-	/*should we assert the mem in is dirty, or should we assert it is initialized and cleared?*/\
-	assert(!s->ptr);\
-\
-	va_list args, copy;\
-	va_start(args, fmt);\
-	va_copy(copy, args);\
-	int len = vsnprintf(NULL, 0, fmt, args);\
-	if (len < 0) fail_cstr("vsnprintf failed");\
-	va_end(copy);\
-\
-	char * const ptr = newarray(char, len + 1);\
-	vsnprintf(ptr, len + 1, fmt, copy);\
-	va_end(args);\
-\
-	s->len = len;\
-	s->ptr = ptr;\
-}
+//can't forward va-args.  says in: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 
 //allocate members
 //c++ eqiv of constructor: str::str
 //https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 void str_init_fmt(str_t * const s, char const * const fmt, ...) {
-	str_init_fmt_body(s);
+	assert(s);
+	/*should we assert the mem in is dirty, or should we assert it is initialized and cleared?*/
+	assert(!s->ptr);
+
+	va_list args, copy;
+	va_start(args, fmt);
+	va_copy(copy, args);
+	int len = vsnprintf(NULL, 0, fmt, args);
+	if (len < 0) fail_cstr("vsnprintf failed");
+	va_end(copy);
+
+	char * const ptr = newarray(char, len + 1);
+	vsnprintf(ptr, len + 1, fmt, copy);
+	va_end(args);
+
+	s->len = len;
+	s->ptr = ptr;
 }
 
 str_t * str_cat(str_t const * const a, str_t const * const b) {
