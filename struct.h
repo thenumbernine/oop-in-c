@@ -136,3 +136,7 @@ FOR_EACH(MAKE_VTABLE_STRUCT_REFL_FIELD, , classname, __VA_ARGS__) \
 classname##_vtable_t classname##_vtable = { \
 FOR_EACH(MAKE_VTABLE_OBJ_FIELD, , classname, __VA_ARGS__) \
 };
+
+#define STRUCT_AND_VTABLE(className, structFields, vtableFields) \
+VTABLE(className vtableFields) \
+STRUCT(className structFields)

@@ -35,7 +35,7 @@ void type##_init(type##_t * const obj) {}
 void type##_destroy(type##_t * const obj) {}
 
 //c++ equiv of "new type()"
-//type_t * type_new(...) => calls type_alloc, type_init(...) 
+//type_t * newobj(suffix, ...) => calls type_alloc, type_init_suffix(...) 
 //can't forward va-args in C.  says in: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 // so to get around this, I'm using C lambda GCC specific trick:
 #define newobj(type, suffix, ...) ({\

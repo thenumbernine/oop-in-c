@@ -1,40 +1,14 @@
 #pragma once
 
-
-//object.h
-
-
-typedef struct object_s object_t;
-
-//don't use VTABLE because it expects the functions to be defined
-//all "object subclasses" should have these matching methods
-typedef struct {
-	object_t * (*alloc)();
-	void (*free)(object_t *);
-	void (*destroy)(object_t *);
-} object_vtable_t;
-
-//all "object subclasses" should have these matching fields
-STRUCT(object,
-	(object_vtable_t const *, v, 0))
-
-
-//TODO a function + macro that calls
-//but if this is a macro then "obj" gets re-evaluated ...
-//and if this is a function then "func" needs extra qualifiers, and "obj" needs corret type casting
-// (not to mention the problems of __VA_ARGS__)
-#define CALL(obj, func, ...) \
-obj->v->func(obj, __VA_ARGS__)
-
-
 //str.h
 //(TODO string?)
-
 
 #include <stdarg.h>	//va_start, va_end, vsnprintf
 #include <string.h>	//strlen
 #include <stdio.h>	//printf
 #include <assert.h>	//assert
+
+//combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 
 VTABLE(str,
 	(alloc, str_t *, ()),
@@ -48,8 +22,6 @@ VTABLE(str,
 	(cat_move, str_t *, (str_t * a, str_t * b)),
 	(println, void, (str_t * const s)),
 	(println_move, void, (str_t * s)))
-
-//combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 STRUCT(str,
 	(str_vtable_t const *, v, 0),		// vtable
 	(size_t, len, 1),			// len is the blob length (not including the \0 at the end)
@@ -84,8 +56,6 @@ void str_init_c(str_t * const s, char const * const cstr) {
 	s->ptr = newarray(char, s->len + 1);
 	memcpy(s->ptr, cstr, s->len + 1);
 }
-
-//can't forward va-args.  says in: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 
 //allocate members
 //c++ eqiv of constructor: str::str

@@ -11,6 +11,7 @@ void * safealloc(size_t size);
 #include "class.h"//needs str but comes before str
 #include "move.h"
 #include "fail.h"
+#include "object.h"
 #include "str.h"
 #include "thread.h"
 #include "file.h"
