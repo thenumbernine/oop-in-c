@@ -2,22 +2,24 @@
 
 #include <stdlib.h> //fopen, fclose, fread, fwrite, ftell, fseek
 
-//TODO merge VTABLE and STRUCT
-
-VTABLE(file,
-	(alloc, file_t *, ()),
-	(free, void, (file_t *)),
-    (destroy, void, (file_t *)),
-    (init, void, (file_t *, char const * filename, char const * mode)),
-    (close, void, (file_t *)),
-    (read, string_t *, (file_t const *, size_t size)),
-    (write, void, (file_t const *, string_t const *)),
-    (tell, size_t, (file_t *)),
-    (seek, void, (file_t *, size_t offset, int whence)))
-
-STRUCT(file,
-	(file_vtable_t const *, v, 0),  //TODO auto-insert vtable as struct entry 0
-    (FILE*, fp, 1))             	//TODO auto index and pass index into FOR_EACH
+CLASS(
+	file,
+	(
+		(file_vtable_t const *, v, 0),  //TODO auto-insert vtable as struct entry 0
+		(FILE*, fp, 1)             		//TODO auto index and pass index into FOR_EACH
+	),
+	(
+		(alloc, file_t *, ()),
+		(free, void, (file_t *)),
+		(destroy, void, (file_t *)),
+		(init, void, (file_t *, char const * filename, char const * mode)),
+		(close, void, (file_t *)),
+		(read, string_t *, (file_t const *, size_t size)),
+		(write, void, (file_t const *, string_t const *)),
+		(tell, size_t, (file_t *)),
+		(seek, void, (file_t *, size_t offset, int whence))
+	)
+)
 
 void file_init(
 	file_t * const f,

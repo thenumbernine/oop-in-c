@@ -49,7 +49,7 @@ typedef struct reflect_s {
 },
 #define MAKE_REFL_FIELD(tuple, classname) APPLY(MAKE_REFL_FIELD_I2, EXPAND3 tuple, classname)
 
-#define STRUCT(classname, ...) \
+#define MAKE_TYPE_AND_REFLECT(classname, ...) \
 \
 /* <class>_fieldType_<index>; */\
 \
@@ -77,7 +77,7 @@ for each arg:
 	typedef <returnType> (<class>_<func>_t)(<args>);
 	<class>_<func>_t <class>_<func>;
 
-STRUCT(<class>_vtable, ...)
+MAKE_TYPE_AND_REFLECT(<class>_vtable, ...)
 
 <class>_vtable_t <class>_vtable = {
 	.<func> = <class>_<func>,
@@ -92,15 +92,15 @@ STRUCT(<class>_vtable, ...)
 #define MAKE_VTABLE_C_FUNC_PROTOTYPE_I(funcName, returnType, funcArgs, classname) classname##_##funcName##_t classname##_##funcName;
 #define MAKE_VTABLE_C_FUNC_PROTOTYPE(tuple, classname) APPLY(MAKE_VTABLE_C_FUNC_PROTOTYPE_I, EXPAND3 tuple, classname)
 
-//calling STRUCT from VTABLE:
+//calling MAKE_TYPE_AND_REFLECT from MAKE_VTABLE:
 //#define MAKE_VTABLE_STRUCT_FIELD_I(funcName, returnType, funcArgs, classname) ,(classname##_##funcName##_t*, funcName, 0)
 //#define MAKE_VTABLE_STRUCT_FIELD(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELD_I, EXPAND3 tuple, classname)
 
-//TODO I need to either add "index" as a 4th field to VTABLE(...) *OR* add it as a var to the FOR_EACH macro's callback
+//TODO I need to either add "index" as a 4th field to MAKE_VTABLE(...) *OR* add it as a var to the FOR_EACH macro's callback
 //#define MAKE_VTABLE_STRUCT_FIELDTYPE_I2(funcName, returnType, funcArgs, classname) typedef classname##_##funcName##_t * classname##_vtable_fieldType_##index;
 //#define MAKE_VTABLE_STRUCT_FIELDTYPE(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELDTYPE_I2, EXPAND3 tuple, classname)
 
-//manually expanding STRUCT into VTABLE
+//manually expanding MAKE_TYPE_AND_REFLECT into MAKE_VTABLE
 #define MAKE_VTABLE_STRUCT_FIELD2_I(funcName, returnType, funcArgs, classname) classname##_##funcName##_t * funcName;
 #define MAKE_VTABLE_STRUCT_FIELD2(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELD2_I, EXPAND3 tuple, classname)
 
@@ -116,12 +116,12 @@ STRUCT(<class>_vtable, ...)
 #define MAKE_VTABLE_OBJ_FIELD_I(funcName, returnType, funcArgs, classname) .funcName = classname##_##funcName,
 #define MAKE_VTABLE_OBJ_FIELD(tuple, classname) APPLY(MAKE_VTABLE_OBJ_FIELD_I, EXPAND3 tuple, classname)
 
-#define VTABLE(classname, ...) \
+#define MAKE_VTABLE(classname, ...) \
 typedef struct classname##_s classname##_t; \
 FOR_EACH(MAKE_VTABLE_MEMBER_C_FUNC_TYPE, , classname, __VA_ARGS__) \
 FOR_EACH(MAKE_VTABLE_C_FUNC_PROTOTYPE, , classname, __VA_ARGS__) \
-/* calling STRUCT from VTABLE -- having trouble: */ \
-/*STRUCT(classname##_vtable*/ \
+/* calling MAKE_TYPE_AND_REFLECT from MAKE_VTABLE -- having trouble: */ \
+/*MAKE_TYPE_AND_REFLECT(classname##_vtable*/ \
 /*	FOR_EACH(MAKE_VTABLE_STRUCT_FIELD, , classname VA_ARGS(__VA_ARGS__))*/ \
 /*)*/ \
 /* manually expanding it: */ \
@@ -132,11 +132,12 @@ FOR_EACH(MAKE_VTABLE_STRUCT_FIELD2, , classname, __VA_ARGS__) \
 reflect_t classname##_vtable_fields[] = { \
 FOR_EACH(MAKE_VTABLE_STRUCT_REFL_FIELD, , classname, __VA_ARGS__) \
 }; \
-/* end STRUCT call */ \
+/* end MAKE_TYPE_AND_REFLECT call */ \
 classname##_vtable_t classname##_vtable = { \
 FOR_EACH(MAKE_VTABLE_OBJ_FIELD, , classname, __VA_ARGS__) \
 };
 
-#define STRUCT_AND_VTABLE(className, structFields, vtableFields) \
-VTABLE(className vtableFields) \
-STRUCT(className structFields)
+
+#define CLASS(className, structFields, vtableFields) \
+MAKE_VTABLE(className, DEFER vtableFields) \
+MAKE_TYPE_AND_REFLECT(className, DEFER structFields)

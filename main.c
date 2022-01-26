@@ -26,32 +26,39 @@ void * safealloc(size_t size) {
 }
 
 //arg of our thread_t init
-VTABLE(threadInit,
-	(alloc, threadInit_t *, ()),
-	(free, void, (threadInit_t *)),
-	(destroy, void, (threadInit_t *)),
-	(init, void, (threadInit_t *)),
-	(tostring, string_t *, (threadInit_t const *))
-)
-STRUCT(threadInit,
-	(threadInit_vtable_t const *, v, 0),
-	(int, something, 1)
+CLASS(
+	threadInit,
+	(
+		(threadInit_vtable_t const *, v, 0),
+		(int, something, 1)
+	),
+	(
+		(alloc, threadInit_t *, ()),
+		(free, void, (threadInit_t *)),
+		(destroy, void, (threadInit_t *)),
+		(init, void, (threadInit_t *)),
+		(tostring, string_t *, (threadInit_t const *))
+	)
 )
 MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTRING)
 MAKE_MOVE(string_t *, threadInit, tostring)
 
 
 //return value for our thread_t routine
-VTABLE(threadEnd,
-	(alloc, threadEnd_t *, ()),
-	(free, void, (threadEnd_t *)),
-	(destroy, void, (threadEnd_t *)),
-	(init, void, (threadEnd_t *)),
-	(tostring, string_t *, (threadEnd_t const *))
-)
-STRUCT(threadEnd,
-	(threadEnd_vtable_t const *, v, 0),
-	(int, somethingElse, 1)
+CLASS(
+	//classname
+	threadEnd,
+	(
+		(threadEnd_vtable_t const *, v, 0),
+		(int, somethingElse, 1)
+	),
+	(
+		(alloc, threadEnd_t *, ()),
+		(free, void, (threadEnd_t *)),
+		(destroy, void, (threadEnd_t *)),
+		(init, void, (threadEnd_t *)),
+		(tostring, string_t *, (threadEnd_t const *))
+	)
 )
 MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTRING)
 MAKE_MOVE(string_t *, threadEnd, tostring)

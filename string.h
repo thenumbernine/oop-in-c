@@ -7,22 +7,29 @@
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 
-VTABLE(string,
-	(alloc, string_t *, ()),
-	(free, void, (string_t *)),
-	(destroy, void, (string_t *)),
-	(init, void, (string_t *)),
-	(init_size, void, (string_t *, size_t size)),
-	(init_c, void, (string_t *, char const * const cstr)),
-	(init_fmt, void, (string_t *, char const * const fmt, ...)),
-	(cat, string_t *, (string_t const * a, string_t const * b)),
-	(cat_move, string_t *, (string_t * a, string_t * b)),
-	(println, void, (string_t * const s)),
-	(println_move, void, (string_t * s)))
-STRUCT(string,
-	(string_vtable_t const *, v, 0),		// vtable
-	(size_t, len, 1),			// len is the blob length (not including the \0 at the end)
-	(char *, ptr, 2)			// ptr is len+1 in size for strlen strs
+CLASS(
+	// classname
+	string,
+	// fields
+	(
+		(string_vtable_t const *, v, 0),		// vtable
+		(size_t, len, 1),			// len is the blob length (not including the \0 at the end)
+		(char *, ptr, 2)			// ptr is len+1 in size for strlen strs
+	),
+	// vtable
+	(
+		(alloc, string_t *, ()),
+		(free, void, (string_t *)),
+		(destroy, void, (string_t *)),
+		(init, void, (string_t *)),
+		(init_size, void, (string_t *, size_t size)),
+		(init_c, void, (string_t *, char const * const cstr)),
+		(init_fmt, void, (string_t *, char const * const fmt, ...)),
+		(cat, string_t *, (string_t const * a, string_t const * b)),
+		(cat_move, string_t *, (string_t * a, string_t * b)),
+		(println, void, (string_t * const s)),
+		(println_move, void, (string_t * s))
+	)
 )
 
 //_destroy is in-place / object dtors
