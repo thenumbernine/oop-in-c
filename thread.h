@@ -30,68 +30,43 @@ void thread_init(
 	thread_t * const t,
 	// extra args forwarded
 	threadStart_t threadStart,
-	void * arg
+	void * arg/*,
+	size_t stackSize
+	*/
 ) {
 	t->arg = arg;
 	
-	pthread_attr_t attrib;
-	ASSERTZERO(pthread_attr_init, &attrib);
+	pthread_attr_t attr;
+	ASSERTZERO(pthread_attr_init, &attr);
 
 	size_t stackSize = 0;
 	if (stackSize) {
-		ASSERTZERO(pthread_attr_setstacksize, &attrib, stackSize);
+		ASSERTZERO(pthread_attr_setstacksize, &attr, stackSize);
 	}
 
 	int numCores = get_nprocs_conf();
-	printf("number of cores: %d\n", numCores);									// 16
-	printf("sizeof(cpu_set_t) = %lu\n", sizeof(cpu_set_t));						// 128
-#if 0	
-	for (int i = 0; i <= numCores; ++i) {
-		printf("CPU_ALLOC_SIZE(%d) = %lu\n", i, CPU_ALLOC_SIZE(i));				// 0 => 0, all else => 8 ... is it a pointer?
-	}
-#endif
+	//printf("number of cores: %d\n", numCores);	// 16
+	//printf("sizeof(cpu_set_t) = %lu\n", sizeof(cpu_set_t));	// 128
 
-#if 1
-#if 0	//limiting number of cores to zero stops the leak
-	numCores = numCores > 0 ? 0 : numCores;
-#endif	
-	
-	cpu_set_t * cpusetp = CPU_ALLOC(numCores);
-	if (!cpusetp) fail("CPU_ALLOC(%d) failed", numCores);
+	//https://linux.die.net/man/3/cpu_set
+	{
+		cpu_set_t * cpusetp = CPU_ALLOC(numCores);
+		if (!cpusetp) fail("CPU_ALLOC(%d) failed", numCores);
 
-	size_t cpuAllocSize = CPU_ALLOC_SIZE(numCores);
-	CPU_ZERO_S(cpuAllocSize, cpusetp);
-
-	for (int i = 0; i < numCores; ++i) {
-		CPU_SET_S(i, cpuAllocSize, cpusetp);
+		size_t cpuAllocSize = CPU_ALLOC_SIZE(numCores);
+		CPU_ZERO_S(cpuAllocSize, cpusetp);
+		for (int i = 0; i < numCores; ++i) {
+			CPU_SET_S(i, cpuAllocSize, cpusetp);
+		}
+		
+		ASSERTZERO(pthread_attr_setaffinity_np, &attr, cpuAllocSize, cpusetp);
+		CPU_FREE(cpusetp);
 	}
 
-#if 1	//valgrind says this leaks
-	ASSERTZERO(pthread_attr_setaffinity_np, &attrib, cpuAllocSize, cpusetp);
-#endif
-#if 0	//call but set zero to size to stop the leak 
-	ASSERTZERO(pthread_attr_setaffinity_np, &attrib, 0, cpuset);
-#endif
-#endif
-#if 0	//same as above but without heap alloc
-	cpu_set_t cpuset;
-	CPU_ZERO(&cpuset);
-	for (int i = 0; i < numCores; ++i) {
-		CPU_SET(i, &cpuset);
-	}
-	ASSERTZERO(pthread_attr_setaffinity_np, &attrib, sizeof(cpu_set_t), &cpuset);
-#endif
-
-	ASSERTZERO(pthread_create, &t->pthread, &attrib, threadStart, (void*)t);
-   	ASSERTZERO(pthread_attr_destroy, &attrib);
-	
-#if 0	//valgrind says this leaks
-	ASSERTZERO(pthread_setaffinity_np, t->pthread, cpuAllocSize, cpusetp);
-#endif
-#if 1
-	CPU_FREE(cpusetp);
-#endif
+	ASSERTZERO(pthread_create, &t->pthread, &attr, threadStart, (void*)t);
+   	ASSERTZERO(pthread_attr_destroy, &attr);
 }
+
 MAKE_NEW_FOR_INIT(thread, ,
 	(threadStart_t, threadStart),
 	(void *, arg))
@@ -104,4 +79,4 @@ void * thread_join(
 	return ret;
 }
 
-MAKE_MOVE(void*, thread, join);	//thread_join_move ... joins and deletes thread
+MAKE_MOVE(void *, thread, join);	//thread_join_move ... joins and deletes thread

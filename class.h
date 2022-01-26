@@ -40,6 +40,7 @@ void type##_destroy(type##_t * const obj) {}
 #define DEFAULT_NEW(type)\
 type##_t * type##_new() {\
 	type##_t * obj = type##_alloc();\
+	obj->v = &type##_vtable;\
 	type##_init(obj);\
 	return obj;\
 }
@@ -48,8 +49,9 @@ type##_t * type##_new() {\
 // c++ equiv of "delete type"
 #define DEFAULT_DELETE(type)\
 void type##_delete(type##_t * const o) {\
-	if (o) type##_destroy(o);\
-	type##_free(o); /*_delete behavior:*/\
+	if (!o) return;\
+	o->v->destroy(o);\
+	o->v->free(o);\
 }
 
 
@@ -65,8 +67,8 @@ str_t * type##_tostr(\
 	}\
 	s = str_cat_move(s, str_new_fmt("%p={", obj));\
 	/* TODO HERE FOR_EACH over the reflect fields, and then call each member's _tostr() */\
-	reflect_t * endOfFields = type##_fields + numberof(type##_fields);\
-	for (reflect_t * field = type##_fields; field < endOfFields; ++field) {\
+	reflect_t const * const endOfFields = type##_fields + numberof(type##_fields);\
+	for (reflect_t const * field = type##_fields; field < endOfFields; ++field) {\
 		if (field > type##_fields) {\
 			s = str_cat_move(s, str_new_c(", "));\
 		}\
@@ -97,10 +99,10 @@ type##_t * type##_new##initSuffix(\
 FOR_EACH(MAKE_NEW_FOR_INIT_ARGS, COMMA, , __VA_ARGS__)\
 ) {\
 	type##_t * obj = type##_alloc();\
+	obj->v = &type##_vtable;\
 	type##_init##initSuffix(obj \
 FOR_EACH(MAKE_NEW_FOR_INIT_CALL, , , __VA_ARGS__)\
 	);\
-	obj->v = &type##_vtable;\
 	return obj;\
 }
 
@@ -110,7 +112,7 @@ FOR_EACH(MAKE_NEW_FOR_INIT_CALL, , , __VA_ARGS__)\
 #define MAKE_NEW_FOR_INIT_NOARGS(type, initSuffix)\
 type##_t * type##_new##initSuffix() {\
 	type##_t * obj = type##_alloc();\
-	type##_init##initSuffix(obj);\
 	obj->v = &type##_vtable;\
+	type##_init##initSuffix(obj);\
 	return obj;\
 }

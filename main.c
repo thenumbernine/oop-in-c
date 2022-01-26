@@ -49,7 +49,8 @@ VTABLE(threadEnd,
 	(tostr, str_t *, (threadEnd_t const *))
 )
 STRUCT(threadEnd,
-	(int, somethingElse, 0)
+	(threadEnd_vtable_t *, v, 0),
+	(int, somethingElse, 1)
 )
 MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTR, NEW, DELETE)
 MAKE_MOVE(str_t *, threadEnd, tostr)

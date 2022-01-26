@@ -138,6 +138,7 @@ MAKE_NEW_FOR_INIT(str, _fmt,
 str_t * str_cat(str_t const * const a, str_t const * const b) {
 	str_t * const s = str_new();
 	s->len = a->len + b->len;	//because for now len includes the null term
+	assert(!s->ptr);
 	s->ptr = newarray(char, s->len + 1);
 	memcpy(s->ptr, a->ptr, a->len);
 	memcpy(s->ptr + a->len, b->ptr, b->len);
