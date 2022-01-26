@@ -8,7 +8,6 @@ typedef void *(*threadStart_t)(void *);
 CLASS(
 	thread,
 	(
-		(thread_vtable_t const *, v, 0),
 		(pthread_t, pthread, 1),
 		(void*, arg, 2)
 	),

@@ -12,9 +12,8 @@ CLASS(
 	string,
 	// fields
 	(
-		(string_vtable_t const *, v, 0),		// vtable
-		(size_t, len, 1),			// len is the blob length (not including the \0 at the end)
-		(char *, ptr, 2)			// ptr is len+1 in size for strlen strs
+		(size_t, len, 1), // len is the blob length (not including the \0 at the end)
+		(char *, ptr, 2)  // ptr is len+1 in size for strlen strs
 	),
 	// vtable
 	(

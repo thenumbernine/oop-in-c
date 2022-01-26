@@ -5,8 +5,7 @@
 CLASS(
 	file,
 	(
-		(file_vtable_t const *, v, 0),  //TODO auto-insert vtable as struct entry 0
-		(FILE*, fp, 1)             		//TODO auto index and pass index into FOR_EACH
+		(FILE*, fp, 1) //TODO auto index and pass index into FOR_EACH
 	),
 	(
 		(alloc, file_t *, ()),

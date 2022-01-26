@@ -138,6 +138,14 @@ FOR_EACH(MAKE_VTABLE_OBJ_FIELD, , classname, __VA_ARGS__) \
 };
 
 
+#define CLASS_MAKE_TYPE_AND_REFLECT_D(...) VA_ARGS(__VA_ARGS__)
+
 #define CLASS(className, structFields, vtableFields) \
+\
 MAKE_VTABLE(className, DEFER vtableFields) \
-MAKE_TYPE_AND_REFLECT(className, DEFER structFields)
+\
+MAKE_TYPE_AND_REFLECT( \
+	className, \
+	(className##_vtable_t const *, v, 0) \
+	CLASS_MAKE_TYPE_AND_REFLECT_D structFields \
+)

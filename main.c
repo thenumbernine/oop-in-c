@@ -29,7 +29,6 @@ void * safealloc(size_t size) {
 CLASS(
 	threadInit,
 	(
-		(threadInit_vtable_t const *, v, 0),
 		(int, something, 1)
 	),
 	(
@@ -49,7 +48,6 @@ CLASS(
 	//classname
 	threadEnd,
 	(
-		(threadEnd_vtable_t const *, v, 0),
 		(int, somethingElse, 1)
 	),
 	(
