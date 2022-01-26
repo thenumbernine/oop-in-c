@@ -1,3 +1,7 @@
+//these have to go first or gcc can't find these macros
+#define _GNU_SOURCE
+#include <sched.h>		//CPU_ALLOC CPU_FREE CPU_SET
+
 #include <assert.h>	//assert
 #include <stddef.h>	//size_t
 
@@ -92,21 +96,12 @@ int main() {
 	//int err = 0;
 
 	void * ret = NULL;
-	//pthread_t th;
 	{
 		//pass this to pthread_create, expect it to free this once it's done
 		threadInit_t * const initArg = threadInit_new();
 		initArg->something = 42;
-		
 		str_println_move(str_cat_move(str_new_c("creating threadArg_t "), threadInit_tostr(initArg)));
-		
-		thread_t * t = thread_new(threadStart, (void*)initArg);
-		//err = pthread_create(&th, NULL, threadStart, (void*)initArg);
-		//if (err) fail("pthread_create failed with error %d\n", err);
-	
-		//err = pthread_join(th, &ret);
-		//if (err) fail("pthread_join failed with error %d\n", err);
-		ret = thread_join_move(t);
+		ret = thread_join_move(thread_new(threadStart, (void*)initArg));
 	}
 
 	str_println_move(
