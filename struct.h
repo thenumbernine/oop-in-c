@@ -101,8 +101,8 @@ STRUCT(<class>_vtable, ...)
 //#define MAKE_VTABLE_STRUCT_FIELDTYPE(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELDTYPE_I2, EXPAND3 tuple, classname)
 
 //manually expanding STRUCT into VTABLE
-#define MAKE_VTABLE_STRUCT_FIELD_I(funcName, returnType, funcArgs, classname) classname##_##funcName##_t * funcName;
-#define MAKE_VTABLE_STRUCT_FIELD(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELD_I, EXPAND3 tuple, classname)
+#define MAKE_VTABLE_STRUCT_FIELD2_I(funcName, returnType, funcArgs, classname) classname##_##funcName##_t * funcName;
+#define MAKE_VTABLE_STRUCT_FIELD2(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELD2_I, EXPAND3 tuple, classname)
 
 #define MAKE_VTABLE_STRUCT_REFL_FIELD_I2(funcName, returnType, funcArgs, classname) \
 { \
@@ -122,12 +122,12 @@ FOR_EACH(MAKE_VTABLE_MEMBER_C_FUNC_TYPE, , classname, __VA_ARGS__) \
 FOR_EACH(MAKE_VTABLE_C_FUNC_PROTOTYPE, , classname, __VA_ARGS__) \
 /* calling STRUCT from VTABLE -- having trouble: */ \
 /*STRUCT(classname##_vtable*/ \
-/*	FOR_EACH(MAKE_VTABLE_STRUCT_FIELD, , classname, __VA_ARGS__)*/ \
+/*	FOR_EACH(MAKE_VTABLE_STRUCT_FIELD, , classname VA_ARGS(__VA_ARGS__))*/ \
 /*)*/ \
 /* manually expanding it: */ \
 /*FOR_EACH(MAKE_VTABLE_STRUCT_FIELDTYPE, , classname##_vtable, __VA_ARGS__) */ /* this one is having trouble without either a manual index *or* a FOR_EACH callback automatic index */ \
 typedef struct classname##_vtable_s {\
-FOR_EACH(MAKE_VTABLE_STRUCT_FIELD, , classname, __VA_ARGS__) \
+FOR_EACH(MAKE_VTABLE_STRUCT_FIELD2, , classname, __VA_ARGS__) \
 } classname##_vtable_t; \
 reflect_t classname##_vtable_fields[] = { \
 FOR_EACH(MAKE_VTABLE_STRUCT_REFL_FIELD, , classname, __VA_ARGS__) \
