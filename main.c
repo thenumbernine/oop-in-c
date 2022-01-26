@@ -33,10 +33,10 @@ VTABLE(threadInit,
 	(tostr, str_t *, (threadInit_t const *))
 )
 STRUCT(threadInit,
-	(threadInit_vtable_t *, v, 0),
+	(threadInit_vtable_t const *, v, 0),
 	(int, something, 1)
 )
-MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTR, NEW)
+MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTR)
 MAKE_MOVE(str_t *, threadInit, tostr)
 
 
@@ -49,10 +49,10 @@ VTABLE(threadEnd,
 	(tostr, str_t *, (threadEnd_t const *))
 )
 STRUCT(threadEnd,
-	(threadEnd_vtable_t *, v, 0),
+	(threadEnd_vtable_t const *, v, 0),
 	(int, somethingElse, 1)
 )
-MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTR, NEW)
+MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTR)
 MAKE_MOVE(str_t *, threadEnd, tostr)
 
 
@@ -64,7 +64,7 @@ void * threadStart(void * arg_) {
 #if 1
 	str_println_move(
 		str_cat_move(
-			str_new_c("starting thread with "),
+			newobj(str,_c,"starting thread with "),
 			threadInit_tostr_move((threadInit_t *)this->arg)
 		)
 	);
@@ -73,7 +73,7 @@ void * threadStart(void * arg_) {
 	//TODO how to call a member method without referencing the object twice ...
 
 	call(
-		str_new_c("starting thread with "),
+		newobj(str,_c,"starting thread with "),
 		"cat_move",
 		call(
 			(threadInit_t*)this->arg,
@@ -83,7 +83,7 @@ void * threadStart(void * arg_) {
 
 #endif
 
-	threadEnd_t * const ret = threadEnd_new();
+	threadEnd_t * const ret = newobj(threadEnd,);
 	ret->somethingElse = 53;
 	{
 		str_t * s = threadEnd_tostr(ret);
@@ -99,15 +99,15 @@ int main() {
 	void * ret = NULL;
 	{
 		//pass this to pthread_create, expect it to free this once it's done
-		threadInit_t * const initArg = threadInit_new();
+		threadInit_t * const initArg = newobj(threadInit,);
 		initArg->something = 42;
-		str_println_move(str_cat_move(str_new_c("creating threadArg_t "), threadInit_tostr(initArg)));
-		ret = thread_join_move(thread_new(threadStart, (void*)initArg));
+		str_println_move(str_cat_move(newobj(str,_c,"creating threadArg_t "), threadInit_tostr(initArg)));
+		ret = thread_join_move(newobj(thread,, threadStart, (void*)initArg));
 	}
 
 	str_println_move(
 		str_cat_move(
-			str_new_c("pthread_join succeeded with ret="),
+			newobj(str,_c,"pthread_join succeeded with ret="),
 			threadEnd_tostr_move((threadEnd_t*)ret)
 		)
 	);

@@ -16,7 +16,7 @@ typedef struct {
 
 //all "object subclasses" should have these matching fields
 STRUCT(object,
-	(object_vtable_t*, v, 0))
+	(object_vtable_t const *, v, 0))
 
 
 //TODO a function + macro that calls
@@ -51,7 +51,7 @@ VTABLE(str,
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 STRUCT(str,
-	(str_vtable_t*, v, 0),		// vtable
+	(str_vtable_t const *, v, 0),		// vtable
 	(size_t, len, 1),			// len is the blob length (not including the \0 at the end)
 	(char *, ptr, 2)			// ptr is len+1 in size for strlen strs
 )
@@ -71,14 +71,12 @@ void str_init(str_t * const s) {
 	s->len = 0;
 	s->ptr = NULL;
 }
-MAKE_NEW_FOR_INIT_NOARGS(str, )	//TODO make this work with MAKE_NEW_FOR_INIT with no args
 
 //init an empty string with the specified size
 void str_init_size(str_t * const s, size_t size) {
 	s->len = size;
 	s->ptr = newarray(char, size+1);
 }
-MAKE_NEW_FOR_INIT(str, _size, (size_t, size))
 
 //init a string (heap alloc) from a c-string
 void str_init_c(str_t * const s, char const * const cstr) {
@@ -86,7 +84,6 @@ void str_init_c(str_t * const s, char const * const cstr) {
 	s->ptr = newarray(char, s->len + 1);
 	memcpy(s->ptr, cstr, s->len + 1);
 }
-MAKE_NEW_FOR_INIT(str, _c, (char const *, cstr))
 
 //can't forward va-args, so ... 
 //  says: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
@@ -117,26 +114,8 @@ void str_init_fmt(str_t * const s, char const * const fmt, ...) {
 	str_init_fmt_body(s);
 }
 
-//_new calls _init for heap allocated objects
-#if 1
-//can't use DEFAULT_NEW since it uses va_list which can't be forwarded
-	// can't forward va-args so copy the above body ...
-	// ... so use a macro for the _init body instead
-str_t * str_new_fmt(char const * const fmt, ...) {
-	str_t * s = str_alloc();
-	s->v = &str_vtable;
-	str_init_fmt_body(s);
-	return s;
-}
-#else
-// C vararg messes up our arg forwarding 
-// so does the macro being called "_body" but I guess we can get around that
-MAKE_NEW_FOR_INIT(str, _fmt,
-    (char const * const, fmt COMMA ...))
-#endif
-
 str_t * str_cat(str_t const * const a, str_t const * const b) {
-	str_t * const s = str_new();
+	str_t * const s = newobj(str, );
 	s->len = a->len + b->len;	//because for now len includes the null term
 	assert(!s->ptr);
 	s->ptr = newarray(char, s->len + 1);

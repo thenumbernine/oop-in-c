@@ -16,8 +16,8 @@ VTABLE(file,
     (seek, void, (file_t *, size_t offset, int whence)))
 
 STRUCT(file,
-	(file_vtable_t *, v, 0),    //TODO auto-insert vtable as struct entry 0
-    (FILE*, fp, 1))             //TODO auto index and pass index into FOR_EACH
+	(file_vtable_t const *, v, 0),  //TODO auto-insert vtable as struct entry 0
+    (FILE*, fp, 1))             	//TODO auto index and pass index into FOR_EACH
 
 void file_init(
 	file_t * const f,
@@ -27,9 +27,6 @@ void file_init(
 	f->fp = fopen(filename, mode);
 	if (!f->fp) fail("failed to open filename \"%s\" for mode \"%s\"", filename, mode);
 }
-MAKE_NEW_FOR_INIT(file, ,
-    (char const * const, filename),
-    (char const * const, mode))
 
 void file_close(
 	file_t * const f
@@ -50,7 +47,7 @@ str_t * file_read(
 	size_t size
 ) {
 	if (!f->fp) fail("file is already closed");
-	str_t * s = str_new_size(size);
+	str_t * s = newobj(str,_size,size);
 	size_t n = fread(s->ptr, 1, size, f->fp);
 	if (n != size) fail("expected to read %lu bytes but could only read %lu", size, n);
 	return s;
@@ -81,6 +78,4 @@ void file_seek(
 	if (fseek(f->fp, offset, whence) == -1) fail("failed to seek to %lu %d", offset, whence);
 }
 
-// TODO make _NEW not class-specific, just _ALLOC 
-// so how about use vtables and just put one of those entries in ,and have ea generic "new" and "delete" which calsl into vtables?
 MAKE_DEFAULTS(file, ALLOC, FREE)

@@ -13,6 +13,10 @@
 
 #define APPLY(macro, ...) macro(__VA_ARGS__)
 
+//trick for forwarding varargs that can be optionally zero sized
+//https://stackoverflow.com/questions/5891221/variadic-macros-with-zero-arguments
+#define VA_ARGS(...) , ##__VA_ARGS__
+
 
 #define CONCAT(arg1, arg2) CONCAT1(arg1, arg2)
 #define CONCAT1(arg1, arg2) CONCAT2(arg1, arg2)

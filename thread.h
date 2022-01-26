@@ -14,7 +14,7 @@ VTABLE(thread,
 	(join_move, void *, (thread_t *)))
 
 STRUCT(thread,
-	(thread_vtable_t *, v, 0),
+	(thread_vtable_t const *, v, 0),
 	(pthread_t, pthread, 1),
 	(void*, arg, 2))
 
@@ -66,10 +66,6 @@ void thread_init(
 	ASSERTZERO(pthread_create, &t->pthread, &attr, threadStart, (void*)t);
    	ASSERTZERO(pthread_attr_destroy, &attr);
 }
-
-MAKE_NEW_FOR_INIT(thread, ,
-	(threadStart_t, threadStart),
-	(void *, arg))
 
 void * thread_join(
 	thread_t * const t

@@ -35,15 +35,22 @@ void type##_init(type##_t * const obj) {}
 void type##_destroy(type##_t * const obj) {}
 
 //c++ equiv of "new type()"
-//calls type_alloc and then calls type_init
-//TODO DEFAULT_NEW(type) same as MAKE_NEW_FOR_INIT(type, ) ?
-#define DEFAULT_NEW(type)\
-type##_t * type##_new() {\
-	type##_t * obj = type##_alloc();\
-	obj->v = &type##_vtable;\
-	type##_init(obj);\
-	return obj;\
-}
+//type_t * type_new(...) => calls type_alloc, type_init(...) 
+// C lambda is GNU-specific
+#define newobj(type, suffix, ...) ({\
+	type##_vtable_t const * const v = &type##_vtable;\
+	type##_t * obj = v->alloc();\
+	obj->v = v;\
+	v->init##suffix(obj VA_ARGS(__VA_ARGS__));\
+	obj;\
+})
+
+#if 0
+#define newobj3(type, vtable, init, ...)	TODO
+#define newobj2(type, vtable, suffix, ...)	newobj3(type, vtable, vtable->init##suffix, __VA_ARGS__)
+#define newobj(type, suffix, ...)			newobj2(type, &type##_vtable, suffix, __VA_ARGS__)
+#endif
+
 
 // delete(obj) calls obj's destroy and then obj's free
 // c++ equiv of "delete type"
@@ -61,21 +68,21 @@ type##_t * type##_new() {\
 str_t * type##_tostr(\
 	type##_t const * const obj\
 ) {\
-	str_t * s = str_new_c(#type);\
+	str_t * s = newobj(str,_c,#type);\
 	if (!obj) {\
-		return str_cat_move(s, str_new_c("NULL"));\
+		return str_cat_move(s, newobj(str,_c,"NULL"));\
 	}\
-	s = str_cat_move(s, str_new_fmt("%p={", obj));\
+	s = str_cat_move(s, newobj(str,_fmt,"%p={", obj));\
 	/* TODO HERE FOR_EACH over the reflect fields, and then call each member's _tostr() */\
 	reflect_t const * const endOfFields = type##_fields + numberof(type##_fields);\
 	for (reflect_t const * field = type##_fields; field < endOfFields; ++field) {\
 		if (field > type##_fields) {\
-			s = str_cat_move(s, str_new_c(", "));\
+			s = str_cat_move(s, newobj(str,_c,", "));\
 		}\
-		s = str_cat_move(s, str_new_fmt("%s=", field->name));\
+		s = str_cat_move(s, newobj(str,_fmt,"%s=", field->name));\
 /*		s = str_cat_move(s, tostring(  ));*/\
 	}\
-	s = str_cat_move(s, str_new_c("}"));\
+	s = str_cat_move(s, newobj(str,_c,"}"));\
 	return s;\
 }
 
@@ -86,33 +93,3 @@ str_t * type##_tostr(\
 #define MAKE_DEFAULT(name, type) CONCAT(DEFAULT_,name)(type)
 #define MAKE_DEFAULTS(type, ...)\
 FOR_EACH(MAKE_DEFAULT, , type, __VA_ARGS__)
-
-
-#define MAKE_NEW_FOR_INIT_ARGS(tuple, extra)	UNPACK2 tuple	
-#define MAKE_NEW_FOR_INIT_CALL(tuple, extra)	COMMA ARG2_OF_2 tuple
-
-//type_t * type_new(...) => calls type_alloc, type_init(...) 
-//EMPTY doesn't work for 2nd suffix arg, gotta use , ,
-// in fact, I've found situations where EMPTY fails but none where it is necessary ...
-#define MAKE_NEW_FOR_INIT(type, initSuffix, ...)\
-type##_t * type##_new##initSuffix(\
-FOR_EACH(MAKE_NEW_FOR_INIT_ARGS, COMMA, , __VA_ARGS__)\
-) {\
-	type##_t * obj = type##_alloc();\
-	obj->v = &type##_vtable;\
-	type##_init##initSuffix(obj \
-FOR_EACH(MAKE_NEW_FOR_INIT_CALL, , , __VA_ARGS__)\
-	);\
-	return obj;\
-}
-
-
-//TODO get "MAKE_NEW_FOR_INIT" to work with no args. 
-// unti then:
-#define MAKE_NEW_FOR_INIT_NOARGS(type, initSuffix)\
-type##_t * type##_new##initSuffix() {\
-	type##_t * obj = type##_alloc();\
-	obj->v = &type##_vtable;\
-	type##_init##initSuffix(obj);\
-	return obj;\
-}
