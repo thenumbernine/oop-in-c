@@ -8,11 +8,11 @@
 void * safealloc(size_t size);
 
 #include "struct.h"
-#include "class.h"//needs str but comes before str
+#include "class.h"//needs string but comes before string
 #include "move.h"
 #include "fail.h"
 #include "object.h"
-#include "str.h"
+#include "string.h"
 #include "thread.h"
 #include "file.h"
 
@@ -31,14 +31,14 @@ VTABLE(threadInit,
 	(free, void, (threadInit_t *)),
 	(destroy, void, (threadInit_t *)),
 	(init, void, (threadInit_t *)),
-	(tostr, str_t *, (threadInit_t const *))
+	(tostring, string_t *, (threadInit_t const *))
 )
 STRUCT(threadInit,
 	(threadInit_vtable_t const *, v, 0),
 	(int, something, 1)
 )
-MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTR)
-MAKE_MOVE(str_t *, threadInit, tostr)
+MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTRING)
+MAKE_MOVE(string_t *, threadInit, tostring)
 
 
 //return value for our thread_t routine
@@ -47,14 +47,14 @@ VTABLE(threadEnd,
 	(free, void, (threadEnd_t *)),
 	(destroy, void, (threadEnd_t *)),
 	(init, void, (threadEnd_t *)),
-	(tostr, str_t *, (threadEnd_t const *))
+	(tostring, string_t *, (threadEnd_t const *))
 )
 STRUCT(threadEnd,
 	(threadEnd_vtable_t const *, v, 0),
 	(int, somethingElse, 1)
 )
-MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTR)
-MAKE_MOVE(str_t *, threadEnd, tostr)
+MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTRING)
+MAKE_MOVE(string_t *, threadEnd, tostring)
 
 
 void * threadStart(void * arg_) {
@@ -63,10 +63,10 @@ void * threadStart(void * arg_) {
 	arg_ = NULL;
 
 #if 1
-	str_println_move(
-		str_cat_move(
-			newobj(str,_c,"starting thread with "),
-			threadInit_tostr_move((threadInit_t *)this->arg)
+	string_println_move(
+		string_cat_move(
+			newobj(string,_c,"starting thread with "),
+			threadInit_tostring_move((threadInit_t *)this->arg)
 		)
 	);
 #else
@@ -74,11 +74,11 @@ void * threadStart(void * arg_) {
 	//TODO how to call a member method without referencing the object twice ...
 
 	call(
-		newobj(str,_c,"starting thread with "),
+		newobj(string,_c,"starting thread with "),
 		"cat_move",
 		call(
 			(threadInit_t*)this->arg,
-			"tostr_move"
+			"tostring_move"
 		)
 	)
 
@@ -87,7 +87,7 @@ void * threadStart(void * arg_) {
 	threadEnd_t * const ret = newobj(threadEnd,);
 	ret->somethingElse = 53;
 	{
-		str_t * s = threadEnd_tostr(ret);
+		string_t * s = threadEnd_tostring(ret);
 		printf("ending thread and returning %s\n", s->ptr);
 		deleteobj(s);
 	}
@@ -102,19 +102,19 @@ int main() {
 		//pass this to pthread_create, expect it to free this once it's done
 		threadInit_t * const initArg = newobj(threadInit,);
 		initArg->something = 42;
-		str_println_move(str_cat_move(newobj(str,_c,"creating threadArg_t "), threadInit_tostr(initArg)));
+		string_println_move(string_cat_move(newobj(string,_c,"creating threadArg_t "), threadInit_tostring(initArg)));
 		ret = thread_join_move(newobj(thread,, threadStart, (void*)initArg));
 	}
 
-	str_println_move(
-		str_cat_move(
-			newobj(str,_c,"pthread_join succeeded with ret="),
-			threadEnd_tostr_move((threadEnd_t*)ret)
+	string_println_move(
+		string_cat_move(
+			newobj(string,_c,"pthread_join succeeded with ret="),
+			threadEnd_tostring_move((threadEnd_t*)ret)
 		)
 	);
 	ret = NULL;
 
-	printf("sizeof(str_fieldType_0)=%lu\n", sizeof(str_fieldType_0));
+	printf("sizeof(string_fieldType_0)=%lu\n", sizeof(string_fieldType_0));
 
 	return 0;
 }

@@ -1,8 +1,5 @@
 #pragma once
 
-//str.h
-//(TODO string?)
-
 #include <stdarg.h>	//va_start, va_end, vsnprintf
 #include <string.h>	//strlen
 #include <stdio.h>	//printf
@@ -10,57 +7,57 @@
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 
-VTABLE(str,
-	(alloc, str_t *, ()),
-	(free, void, (str_t *)),
-	(destroy, void, (str_t *)),
-	(init, void, (str_t *)),
-	(init_size, void, (str_t *, size_t size)),
-	(init_c, void, (str_t *, char const * const cstr)),
-	(init_fmt, void, (str_t *, char const * const fmt, ...)),
-	(cat, str_t *, (str_t const * a, str_t const * b)),
-	(cat_move, str_t *, (str_t * a, str_t * b)),
-	(println, void, (str_t * const s)),
-	(println_move, void, (str_t * s)))
-STRUCT(str,
-	(str_vtable_t const *, v, 0),		// vtable
+VTABLE(string,
+	(alloc, string_t *, ()),
+	(free, void, (string_t *)),
+	(destroy, void, (string_t *)),
+	(init, void, (string_t *)),
+	(init_size, void, (string_t *, size_t size)),
+	(init_c, void, (string_t *, char const * const cstr)),
+	(init_fmt, void, (string_t *, char const * const fmt, ...)),
+	(cat, string_t *, (string_t const * a, string_t const * b)),
+	(cat_move, string_t *, (string_t * a, string_t * b)),
+	(println, void, (string_t * const s)),
+	(println_move, void, (string_t * s)))
+STRUCT(string,
+	(string_vtable_t const *, v, 0),		// vtable
 	(size_t, len, 1),			// len is the blob length (not including the \0 at the end)
 	(char *, ptr, 2)			// ptr is len+1 in size for strlen strs
 )
 
 //_destroy is in-place / object dtors
 //deallocate members
-//c++ eqiv of destructor : str::~str
-void str_destroy(str_t * const s) {
+//c++ eqiv of destructor : string::~string
+void string_destroy(string_t * const s) {
 	if (!s) return;
 	deleteprim(s->ptr);
 	s->ptr = NULL;
 }
 
-MAKE_DEFAULTS(str, ALLOC, FREE)
+MAKE_DEFAULTS(string, ALLOC, FREE)
 
-void str_init(str_t * const s) {
+void string_init(string_t * const s) {
 	s->len = 0;
 	s->ptr = NULL;
 }
 
 //init an empty string with the specified size
-void str_init_size(str_t * const s, size_t size) {
+void string_init_size(string_t * const s, size_t size) {
 	s->len = size;
 	s->ptr = newarray(char, size+1);
 }
 
 //init a string (heap alloc) from a c-string
-void str_init_c(str_t * const s, char const * const cstr) {
-	s->len = strlen(cstr);	//plus 1 so our str_t can be a cstr and a c++ string
+void string_init_c(string_t * const s, char const * const cstr) {
+	s->len = strlen(cstr);	//plus 1 so our string_t can be a cstr and a c++ string
 	s->ptr = newarray(char, s->len + 1);
 	memcpy(s->ptr, cstr, s->len + 1);
 }
 
 //allocate members
-//c++ eqiv of constructor: str::str
+//c++ eqiv of constructor: string::string
 //https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
-void str_init_fmt(str_t * const s, char const * const fmt, ...) {
+void string_init_fmt(string_t * const s, char const * const fmt, ...) {
 	assert(s);
 	/*should we assert the mem in is dirty, or should we assert it is initialized and cleared?*/
 	assert(!s->ptr);
@@ -80,8 +77,8 @@ void str_init_fmt(str_t * const s, char const * const fmt, ...) {
 	s->ptr = ptr;
 }
 
-str_t * str_cat(str_t const * const a, str_t const * const b) {
-	str_t * const s = newobj(str, );
+string_t * string_cat(string_t const * const a, string_t const * const b) {
+	string_t * const s = newobj(string, );
 	s->len = a->len + b->len;	//because for now len includes the null term
 	assert(!s->ptr);
 	s->ptr = newarray(char, s->len + 1);
@@ -92,10 +89,10 @@ str_t * str_cat(str_t const * const a, str_t const * const b) {
 }
 
 //_move means free args after you're done
-MAKE_MOVE2(str_t *, str, cat, str)	//str_cat_move from str_cat
+MAKE_MOVE2(string_t *, string, cat, string)	//string_cat_move from string_cat
 
-void str_println(str_t * const s) {
+void string_println(string_t * const s) {
 	printf("%s\n", s->ptr);
 }
 
-MAKE_MOVE_VOID(str, println);	//str_println_move from str_println
+MAKE_MOVE_VOID(string, println);	//string_println_move from string_println

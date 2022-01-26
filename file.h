@@ -10,8 +10,8 @@ VTABLE(file,
     (destroy, void, (file_t *)),
     (init, void, (file_t *, char const * filename, char const * mode)),
     (close, void, (file_t *)),
-    (read, str_t *, (file_t const *, size_t size)),
-    (write, void, (file_t const *, str_t const *)),
+    (read, string_t *, (file_t const *, size_t size)),
+    (write, void, (file_t const *, string_t const *)),
     (tell, size_t, (file_t *)),
     (seek, void, (file_t *, size_t offset, int whence)))
 
@@ -42,12 +42,12 @@ void file_destroy(
 	file_close(f);
 }
 
-str_t * file_read(
+string_t * file_read(
 	file_t const * const f,
 	size_t size
 ) {
 	if (!f->fp) fail("file is already closed");
-	str_t * s = newobj(str,_size,size);
+	string_t * s = newobj(string,_size,size);
 	size_t n = fread(s->ptr, 1, size, f->fp);
 	if (n != size) fail("expected to read %lu bytes but could only read %lu", size, n);
 	return s;
@@ -55,7 +55,7 @@ str_t * file_read(
 
 void file_write(
 	file_t const * const f,
-	str_t const * const s
+	string_t const * const s
 ) {
 	if (!f->fp) fail("file is already closed");
 	size_t n = fwrite(s->ptr, 1, s->len, f->fp);

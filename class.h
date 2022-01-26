@@ -10,7 +10,7 @@ class_init <=> class::class()
 class_destroy <=> class::~class()
 obj = class_new() <=> obj = new class();		... calls _alloc, sets vtable, calls _init
 delete obj <=> delete obj;	... calls _destroy and _free
-class_tostr(obj) <=> to_string(obj);
+class_tostring(obj) <=> to_string(obj);
 */
 
 //class allocator -- for returning the  memory of the class
@@ -62,27 +62,27 @@ void type##_destroy(type##_t * const obj) {}
 }
 
 
-//TODO this reference "str_cat_move"
-//so be sure to include "str.h" if you use this.
-#define DEFAULT_TOSTR(type)\
-str_t * type##_tostr(\
+//TODO this reference "string_cat_move"
+//so be sure to include "string.h" if you use this.
+#define DEFAULT_TOSTRING(type)\
+string_t * type##_tostring(\
 	type##_t const * const obj\
 ) {\
-	str_t * s = newobj(str,_c,#type);\
+	string_t * s = newobj(string,_c,#type);\
 	if (!obj) {\
-		return str_cat_move(s, newobj(str,_c,"NULL"));\
+		return string_cat_move(s, newobj(string,_c,"NULL"));\
 	}\
-	s = str_cat_move(s, newobj(str,_fmt,"%p={", obj));\
-	/* TODO HERE FOR_EACH over the reflect fields, and then call each member's _tostr() */\
+	s = string_cat_move(s, newobj(string,_fmt,"%p={", obj));\
+	/* TODO HERE FOR_EACH over the reflect fields, and then call each member's _tostring() */\
 	reflect_t const * const endOfFields = type##_fields + numberof(type##_fields);\
 	for (reflect_t const * field = type##_fields; field < endOfFields; ++field) {\
 		if (field > type##_fields) {\
-			s = str_cat_move(s, newobj(str,_c,", "));\
+			s = string_cat_move(s, newobj(string,_c,", "));\
 		}\
-		s = str_cat_move(s, newobj(str,_fmt,"%s=", field->name));\
-/*		s = str_cat_move(s, tostring(  ));*/\
+		s = string_cat_move(s, newobj(string,_fmt,"%s=", field->name));\
+/*		s = string_cat_move(s, tostring(  ));*/\
 	}\
-	s = str_cat_move(s, newobj(str,_c,"}"));\
+	s = string_cat_move(s, newobj(string,_c,"}"));\
 	return s;\
 }
 
