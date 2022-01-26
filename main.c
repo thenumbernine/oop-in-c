@@ -36,7 +36,7 @@ STRUCT(threadInit,
 	(threadInit_vtable_t *, v, 0),
 	(int, something, 1)
 )
-MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTR, NEW, DELETE)
+MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTR, NEW)
 MAKE_MOVE(str_t *, threadInit, tostr)
 
 
@@ -52,7 +52,7 @@ STRUCT(threadEnd,
 	(threadEnd_vtable_t *, v, 0),
 	(int, somethingElse, 1)
 )
-MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTR, NEW, DELETE)
+MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTR, NEW)
 MAKE_MOVE(str_t *, threadEnd, tostr)
 
 
@@ -88,7 +88,7 @@ void * threadStart(void * arg_) {
 	{
 		str_t * s = threadEnd_tostr(ret);
 		printf("ending thread and returning %s\n", s->ptr);
-		str_delete(s);
+		deleteobj(s);
 	}
 	return ret;
 }

@@ -81,7 +81,6 @@ void file_seek(
 	if (fseek(f->fp, offset, whence) == -1) fail("failed to seek to %lu %d", offset, whence);
 }
 
-//TODO there's no real dif between FREE and DELETE I think ... both are suppoesd to be the ::delete() operator ... but the _delete is supposed to be the invocation ...
-// same with _NEW and _ALLOC
+// TODO make _NEW not class-specific, just _ALLOC 
 // so how about use vtables and just put one of those entries in ,and have ea generic "new" and "delete" which calsl into vtables?
-MAKE_DEFAULTS(file, ALLOC, FREE, DELETE)
+MAKE_DEFAULTS(file, ALLOC, FREE)

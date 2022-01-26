@@ -1,16 +1,16 @@
 #pragma once
 
-#include "new.h"	//new, delete
+#include "new.h"	//new, deleteprim
 #include "macros.h"	//FOR_EACH, CONCAT
 
 /*
-class_alloc = void * type::operator new(size_t)
-class_free = class::operator delete(void *)
-class_init = class::class()
-class_destroy = class::~class()
-class_new = new class();		... calls _alloc, sets vtable, calls _init
-class_delete = delete class();	... calls _destroy and _free
-class_tostr = to_string(class);
+class_alloc <=> void * type::operator new(size_t)
+class_free <=> class::operator delete(void *)
+class_init <=> class::class()
+class_destroy <=> class::~class()
+obj = class_new() <=> obj = new class();		... calls _alloc, sets vtable, calls _init
+delete obj <=> delete obj;	... calls _destroy and _free
+class_tostr(obj) <=> to_string(obj);
 */
 
 //class allocator -- for returning the  memory of the class
@@ -23,7 +23,7 @@ type##_t * type##_alloc() {\
 // c++ equiv of void type::operator delete(void *)
 #define DEFAULT_FREE(type)\
 void type##_free(type##_t * const obj) {\
-	delete(obj);\
+	deleteprim(obj);\
 }
 
 // c++ equiv of type::type()
@@ -45,13 +45,13 @@ type##_t * type##_new() {\
 	return obj;\
 }
 
-// type_delete calls type_destroy and then type_free
+// delete(obj) calls obj's destroy and then obj's free
 // c++ equiv of "delete type"
-#define DEFAULT_DELETE(type)\
-void type##_delete(type##_t * const o) {\
-	if (!o) return;\
-	o->v->destroy(o);\
-	o->v->free(o);\
+#define deleteobj(o) {\
+	if (o) {\
+		o->v->destroy(o);\
+		o->v->free(o);\
+	}\
 }
 
 

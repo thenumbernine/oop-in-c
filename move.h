@@ -4,7 +4,7 @@
 returnType objType##_##funcName##_move(objType##_t * const obj) {\
 	returnType result = objType##_##funcName(obj);\
 	/*_move behavior: delete incoming objects*/\
-	objType##_delete(obj);\
+	deleteobj(obj);\
 	return result;\
 }
 
@@ -12,13 +12,13 @@ returnType objType##_##funcName##_move(objType##_t * const obj) {\
 returnType objType##_##funcName##_move(objType##_t * const obj, obj2Type##_t * const obj2) {\
 	returnType result = objType##_##funcName(obj, obj2);\
 	/*_move behavior: delete incoming objects*/\
-	objType##_delete(obj);\
-	obj2Type##_delete(obj2);\
+	deleteobj(obj);\
+	deleteobj(obj2);\
 	return result;\
 }
 
 #define MAKE_MOVE_VOID(objType, funcName)\
 void objType##_##funcName##_move(objType##_t * const obj) {\
 	objType##_##funcName(obj);\
-	objType##_delete(obj);\
+	deleteobj(obj);\
 }

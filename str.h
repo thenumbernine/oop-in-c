@@ -61,11 +61,11 @@ STRUCT(str,
 //c++ eqiv of destructor : str::~str
 void str_destroy(str_t * const s) {
 	if (!s) return;
-	delete(s->ptr);
+	deleteprim(s->ptr);
 	s->ptr = NULL;
 }
 
-MAKE_DEFAULTS(str, ALLOC, FREE, DELETE)
+MAKE_DEFAULTS(str, ALLOC, FREE)
 
 void str_init(str_t * const s) {
 	s->len = 0;

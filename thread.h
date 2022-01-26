@@ -18,7 +18,7 @@ STRUCT(thread,
 	(pthread_t, pthread, 1),
 	(void*, arg, 2))
 
-MAKE_DEFAULTS(thread, ALLOC, FREE, DESTROY, DELETE, TOSTR)
+MAKE_DEFAULTS(thread, ALLOC, FREE, DESTROY, TOSTR)
 
 #define ASSERTZERO(func, ...) \
 {\
