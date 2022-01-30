@@ -45,6 +45,8 @@ void type##_destroy(type##_t * const obj) {}
 	obj;\
 })
 
+//TODO is there some way to implement "newobj", *with* vararg forwarding,
+// and still not depend on GCC specific lambdas?
 #if 0
 #define newobj3(type, vtable, init, ...)	TODO
 #define newobj2(type, vtable, suffix, ...)	newobj3(type, vtable, (vtable)->init##suffix, __VA_ARGS__)

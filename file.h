@@ -2,23 +2,21 @@
 
 #include <stdlib.h> //fopen, fclose, fread, fwrite, ftell, fseek
 
-CLASS(
-	file,
-	(
-		(FILE*, fp, 1) //TODO auto index and pass index into FOR_EACH
-	),
-	(
-		(alloc, file_t *, ()),
-		(free, void, (file_t *)),
-		(destroy, void, (file_t *)),
-		(init, void, (file_t *, char const * filename, char const * mode)),
-		(close, void, (file_t *)),
-		(read, string_t *, (file_t const *, size_t size)),
-		(write, void, (file_t const *, string_t const *)),
-		(tell, size_t, (file_t *)),
-		(seek, void, (file_t *, size_t offset, int whence))
-	)
+#define CLASS_file_fields (\
+	(FILE*, fp, 1) /*TODO auto index and pass index into FOR_EACH*/ \
 )
+#define CLASS_file_methods (\
+	(alloc, file_t *, ()),\
+	(free, void, (file_t *)),\
+	(destroy, void, (file_t *)),\
+	(init, void, (file_t *, char const * filename, char const * mode)),\
+	(close, void, (file_t *)),\
+	(read, string_t *, (file_t const *, size_t size)),\
+	(write, void, (file_t const *, string_t const *)),\
+	(tell, size_t, (file_t *)),\
+	(seek, void, (file_t *, size_t offset, int whence))\
+)
+CLASS(file)
 
 void file_init(
 	file_t * const f,

@@ -5,23 +5,19 @@
 
 typedef void *(*threadStart_t)(void *);
 
-CLASS(
-	thread,
-	(
-		(pthread_t, pthread, 1),
-		(void*, arg, 2)
-	),
-	(
-		(alloc, thread_t *, ()),
-		(free, void, (thread_t *)),
-		(destroy, void, (thread_t *)),
-		(init, void, (thread_t *, threadStart_t threadStart, void * arg)),
-		(join, void *, (thread_t *)),
-		(join_move, void *, (thread_t *))
-	)
+#define CLASS_thread_fields (\
+	(pthread_t, pthread, 1),\
+	(void*, arg, 2)\
 )
-
-
+#define CLASS_thread_methods (\
+	(alloc, thread_t *, ()),\
+	(free, void, (thread_t *)),\
+	(destroy, void, (thread_t *)),\
+	(init, void, (thread_t *, threadStart_t threadStart, void * arg)),\
+	(join, void *, (thread_t *)),\
+	(join_move, void *, (thread_t *))\
+)
+CLASS(thread)
 MAKE_DEFAULTS(thread, ALLOC, FREE, DESTROY, TOSTRING)
 
 #define ASSERTZERO(func, ...) \

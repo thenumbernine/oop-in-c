@@ -26,38 +26,35 @@ void * safealloc(size_t size) {
 }
 
 //arg of our thread_t init
-CLASS(
-	threadInit,
-	(
-		(int, something, 1)
-	),
-	(
-		(alloc, threadInit_t *, ()),
-		(free, void, (threadInit_t *)),
-		(destroy, void, (threadInit_t *)),
-		(init, void, (threadInit_t *)),
-		(tostring, string_t *, (threadInit_t const *))
-	)
+
+#define CLASS_threadInit_fields (\
+	(int, something, 1)\
 )
+#define CLASS_threadInit_methods (\
+	(alloc, threadInit_t *, ()),\
+	(free, void, (threadInit_t *)),\
+	(destroy, void, (threadInit_t *)),\
+	(init, void, (threadInit_t *)),\
+	(tostring, string_t *, (threadInit_t const *))\
+)
+CLASS(threadInit)
 MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTRING)
 MAKE_MOVE(string_t *, threadInit, tostring)
 
 
 //return value for our thread_t routine
-CLASS(
-	//classname
-	threadEnd,
-	(
-		(int, somethingElse, 1)
-	),
-	(
-		(alloc, threadEnd_t *, ()),
-		(free, void, (threadEnd_t *)),
-		(destroy, void, (threadEnd_t *)),
-		(init, void, (threadEnd_t *)),
-		(tostring, string_t *, (threadEnd_t const *))
-	)
+
+#define CLASS_threadEnd_fields (\
+	(int, somethingElse, 1)\
 )
+#define CLASS_threadEnd_methods (\
+	(alloc, threadEnd_t *, ()),\
+	(free, void, (threadEnd_t *)),\
+	(destroy, void, (threadEnd_t *)),\
+	(init, void, (threadEnd_t *)),\
+	(tostring, string_t *, (threadEnd_t const *))\
+)
+CLASS(threadEnd)
 MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTRING)
 MAKE_MOVE(string_t *, threadEnd, tostring)
 
