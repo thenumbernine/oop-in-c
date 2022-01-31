@@ -70,37 +70,42 @@ typedef struct reflect_s {
 
 
 //typedef <type> <className>_<fieldName>_fieldType;
-#define MAKE_FIELDTYPE_I2(ftype, fieldName, classname) typedef ftype classname##_##fieldName##_fieldType;
-#define MAKE_FIELDTYPE(tuple, classname) APPLY(MAKE_FIELDTYPE_I2, EXPAND2 tuple, classname)
-#define MAKE_FIELDTYPES(classname, ...) FOR_EACH(MAKE_FIELDTYPE, , classname, __VA_ARGS__)
+#define MAKE_FIELDTYPE_I2(ftype, fieldName, className) typedef ftype className##_##fieldName##_fieldType;
+#define MAKE_FIELDTYPE(tuple, className) APPLY(MAKE_FIELDTYPE_I2, EXPAND2 tuple, className)
+#define MAKE_FIELDTYPES(className, ...) FOR_EACH(MAKE_FIELDTYPE, , className, __VA_ARGS__)
 
 #define MAKE_STRUCT_FIELD(tuple, extra) UNPACK2 tuple;
 
-#define MAKE_STRUCT(classname, ...) \
-typedef struct classname##_s {\
+#define MAKE_STRUCT(className, ...) \
+typedef struct className##_s {\
 FOR_EACH(MAKE_STRUCT_FIELD, , , __VA_ARGS__) \
-} classname##_t;
+} className##_t;
 
-
-#define MAKE_REFLECT_FIELD_I(fieldType, fieldName, classname) \
-{ \
-	.offset = offsetof(classname##_t, fieldName), \
+#define MAKE_REFLECT_FIELD_ENTRY_I(fieldType, fieldName, className) \
+reflect_t className##_##fieldName##_field = { \
+	.offset = offsetof(className##_t, fieldName), \
 	.size = sizeof(fieldType), \
 	.name = #fieldName, \
 	.type = &fieldType##_type, /*hmm, but types can be invalid names, ex: pointers.  so, like the function pointers in the vtable, they will all have to be typedef'd.*/ \
-},
-#define MAKE_REFLECT_FIELD(tuple, classname) APPLY(MAKE_REFLECT_FIELD_I, EXPAND2 tuple, classname)
+};
+#define MAKE_REFLECT_FIELD_ENTRY(tuple, className) APPLY(MAKE_REFLECT_FIELD_ENTRY_I, EXPAND2 tuple, className)
 
-#define MAKE_REFLECT(classname, ...) \
-reflect_t classname##_fields[] = { \
-FOR_EACH(MAKE_REFLECT_FIELD, , classname, __VA_ARGS__) \
+#define MAKE_REFLECT_STRUCT_ENTRY_I(fieldType, fieldName, className) &className##_##fieldName##_field
+#define MAKE_REFLECT_STRUCT_ENTRY(tuple, className) APPLY(MAKE_REFLECT_STRUCT_ENTRY_I, EXPAND2 tuple, className)
+
+#define MAKE_REFLECT(className, ...) \
+\
+FOR_EACH(MAKE_REFLECT_FIELD_ENTRY, , className, __VA_ARGS__) \
+\
+reflect_t const * className##_fields[] = { \
+FOR_EACH(MAKE_REFLECT_STRUCT_ENTRY, COMMA, className, __VA_ARGS__), \
 };
 
 
 /*
 ... but this fails
 because it depends on newobj
-which depends on classname##_vtable
+which depends on className##_vtable
 specifically, it needs vtable->init_##suffix
 and this is non-standardized per-class
 or I could just define string's vtable before defining this tostring in any function (including object)
@@ -111,24 +116,24 @@ typedef struct string_s string_t;
 string_t * string_cat_move(string_t * a, string_t * b);
 void string_init_c(string_t * s, char const * c);
 void string_init_fmt(string_t * s, char const * fmt, ...);
-#define MAKE_DEFAULT_TOSTRING_FIELD_I(fieldType, fieldName, classname) \
+#define MAKE_DEFAULT_TOSTRING_FIELD_I(fieldType, fieldName, className) \
 	s = string_cat_move(s, newobj(string,_c,", "));\
 	s = string_cat_move(s, newobj(string,_fmt,"%s=", field->name));\
 	s = string_cat_move(s, newobj(string,_c,"(value)")/*tostring(  )*/);
-#define MAKE_DEFAULT_TOSTRING_FIELD(tuple, classname) APPLY(MAKE_DEFAULT_TOSTRING_FIELD_I, EXPAND2 tuple, classname)
+#define MAKE_DEFAULT_TOSTRING_FIELD(tuple, className) APPLY(MAKE_DEFAULT_TOSTRING_FIELD_I, EXPAND2 tuple, className)
 #endif
 
 
-#define MAKE_TYPE_AND_REFLECT(classname, ...) \
+#define MAKE_TYPE_AND_REFLECT(className, ...) \
 \
 /* <class>_<field>_fieldType; */\
-MAKE_FIELDTYPES(classname, __VA_ARGS__)\
+MAKE_FIELDTYPES(className, __VA_ARGS__)\
 \
 /* the class itself: */\
-MAKE_STRUCT(classname, __VA_ARGS__) \
+MAKE_STRUCT(className, __VA_ARGS__) \
 \
 /* reflection fields */\
-MAKE_REFLECT(classname, __VA_ARGS__) \
+MAKE_REFLECT(className, __VA_ARGS__) \
 
 #if 0
 /* TODO while you're here, make the default _tostring function  */\
@@ -138,15 +143,15 @@ MAKE_REFLECT(classname, __VA_ARGS__) \
 /*  which is here. */\
 /* default tostring that auto-serializes fields */\
 \
-string_t * classname##_default_tostring(\
-	classname##_t const * const obj\
+string_t * className##_default_tostring(\
+	className##_t const * const obj\
 ) {\
-	string_t * s = newobj(string,_c,#classname);\
+	string_t * s = newobj(string,_c,#className);\
 	if (!obj) {\
 		return string_cat_move(s, newobj(string,_c,"NULL"));\
 	}\
 	s = string_cat_move(s, newobj(string,_fmt,"%p={", obj));\
-FOR_EACH(MAKE_DEFAULT_TOSTRING_FIELD, , classname, __VA_ARGS__) \
+FOR_EACH(MAKE_DEFAULT_TOSTRING_FIELD, , className, __VA_ARGS__) \
 	s = string_cat_move(s, newobj(string,_c,"}"));\
 	return s;\
 }
@@ -171,65 +176,70 @@ MAKE_TYPE_AND_REFLECT(<class>_vtable, ...)
 
 */
 
-#define MAKE_VTABLE_MEMBER_C_FUNC_TYPE_I(funcName, returnType, funcArgs, classname) typedef returnType (classname##_##funcName##_t) funcArgs;
-#define MAKE_VTABLE_MEMBER_C_FUNC_TYPE(tuple, classname) APPLY(MAKE_VTABLE_MEMBER_C_FUNC_TYPE_I, EXPAND3 tuple, classname)
+#define MAKE_VTABLE_MEMBER_C_FUNC_TYPE_I(funcName, returnType, funcArgs, className) typedef returnType (className##_##funcName##_t) funcArgs;
+#define MAKE_VTABLE_MEMBER_C_FUNC_TYPE(tuple, className) APPLY(MAKE_VTABLE_MEMBER_C_FUNC_TYPE_I, EXPAND3 tuple, className)
 
-#define MAKE_VTABLE_C_FUNC_PROTOTYPE_I(funcName, returnType, funcArgs, classname) classname##_##funcName##_t classname##_##funcName;
-#define MAKE_VTABLE_C_FUNC_PROTOTYPE(tuple, classname) APPLY(MAKE_VTABLE_C_FUNC_PROTOTYPE_I, EXPAND3 tuple, classname)
+#define MAKE_VTABLE_C_FUNC_PROTOTYPE_I(funcName, returnType, funcArgs, className) className##_##funcName##_t className##_##funcName;
+#define MAKE_VTABLE_C_FUNC_PROTOTYPE(tuple, className) APPLY(MAKE_VTABLE_C_FUNC_PROTOTYPE_I, EXPAND3 tuple, className)
 
 //calling MAKE_TYPE_AND_REFLECT from MAKE_VTABLE:
-//#define MAKE_VTABLE_STRUCT_FIELD_I(funcName, returnType, funcArgs, classname) ,(classname##_##funcName##_t*, funcName, 0)
-//#define MAKE_VTABLE_STRUCT_FIELD(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELD_I, EXPAND3 tuple, classname)
+//#define MAKE_VTABLE_STRUCT_FIELD_I(funcName, returnType, funcArgs, className) ,(className##_##funcName##_t*, funcName, 0)
+//#define MAKE_VTABLE_STRUCT_FIELD(tuple, className) APPLY(MAKE_VTABLE_STRUCT_FIELD_I, EXPAND3 tuple, className)
 
-//#define MAKE_VTABLE_STRUCT_FIELDTYPE_I2(funcName, returnType, funcArgs, classname) typedef classname##_##funcName##_t * classname##_vtable_##funcName##_fieldType;
-//#define MAKE_VTABLE_STRUCT_FIELDTYPE(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELDTYPE_I2, EXPAND3 tuple, classname)
+//#define MAKE_VTABLE_STRUCT_FIELDTYPE_I2(funcName, returnType, funcArgs, className) typedef className##_##funcName##_t * className##_vtable_##funcName##_fieldType;
+//#define MAKE_VTABLE_STRUCT_FIELDTYPE(tuple, className) APPLY(MAKE_VTABLE_STRUCT_FIELDTYPE_I2, EXPAND3 tuple, className)
 
 //manually expanding MAKE_TYPE_AND_REFLECT into MAKE_VTABLE
-#define MAKE_VTABLE_STRUCT_FIELD2_I(funcName, returnType, funcArgs, classname) classname##_##funcName##_t * funcName;
-#define MAKE_VTABLE_STRUCT_FIELD2(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELD2_I, EXPAND3 tuple, classname)
+#define MAKE_VTABLE_STRUCT_FIELD2_I(funcName, returnType, funcArgs, className) className##_##funcName##_t * funcName;
+#define MAKE_VTABLE_STRUCT_FIELD2(tuple, className) APPLY(MAKE_VTABLE_STRUCT_FIELD2_I, EXPAND3 tuple, className)
 
-#define MAKE_VTABLE_STRUCT_REFL_FIELD_I2(funcName, returnType, funcArgs, classname) \
-{ \
-	.offset = offsetof(classname##_vtable_t, funcName), \
-	.size = sizeof(classname##_##funcName##_t), \
+#define MAKE_VTABLE_REFLECT_FIELD_ENTRY_I(funcName, returnType, funcArgs, className) \
+reflect_t className##_vtable_t_##funcName##_field = { \
+	.offset = offsetof(className##_vtable_t, funcName), \
+	.size = sizeof(className##_##funcName##_t), \
 	.name = #funcName, \
 	/*.type = &fieldType##_type,*/ /*hmm, but types can be invalid names, ex: pointers*/ \
-},
-#define MAKE_VTABLE_STRUCT_REFL_FIELD(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_REFL_FIELD_I2, EXPAND3 tuple, classname)
+};
+#define MAKE_VTABLE_REFLECT_FIELD_ENTRY(tuple, className) APPLY(MAKE_VTABLE_REFLECT_FIELD_ENTRY_I, EXPAND3 tuple, className)
 
-#define MAKE_VTABLE_OBJ_FIELD_I(funcName, returnType, funcArgs, classname) .funcName = classname##_##funcName,
-#define MAKE_VTABLE_OBJ_FIELD(tuple, classname) APPLY(MAKE_VTABLE_OBJ_FIELD_I, EXPAND3 tuple, classname)
+#define MAKE_VTABLE_REFLECT_STRUCT_ENTRY_I(funcName, returnType, funcArgs, className) &className##_vtable_t_##funcName##_field
+#define MAKE_VTABLE_REFLECT_STRUCT_ENTRY(tuple, className) APPLY(MAKE_VTABLE_REFLECT_STRUCT_ENTRY_I, EXPAND3 tuple, className)
 
-#define MAKE_VTABLE(classname, ...) \
+#define MAKE_VTABLE_OBJ_FIELD_I(funcName, returnType, funcArgs, className) .funcName = className##_##funcName,
+#define MAKE_VTABLE_OBJ_FIELD(tuple, className) APPLY(MAKE_VTABLE_OBJ_FIELD_I, EXPAND3 tuple, className)
+
+#define MAKE_VTABLE(className, ...) \
 \
-typedef struct classname##_s classname##_t; \
-FOR_EACH(MAKE_VTABLE_MEMBER_C_FUNC_TYPE, , classname, __VA_ARGS__) \
-FOR_EACH(MAKE_VTABLE_C_FUNC_PROTOTYPE, , classname, __VA_ARGS__) \
+typedef struct className##_s className##_t; \
+FOR_EACH(MAKE_VTABLE_MEMBER_C_FUNC_TYPE, , className, __VA_ARGS__) \
+FOR_EACH(MAKE_VTABLE_C_FUNC_PROTOTYPE, , className, __VA_ARGS__) \
 \
 /* calling MAKE_TYPE_AND_REFLECT from MAKE_VTABLE -- having trouble: */ \
-/*MAKE_TYPE_AND_REFLECT(classname##_vtable*/ \
-/*	FOR_EACH(MAKE_VTABLE_STRUCT_FIELD, , classname VA_ARGS(__VA_ARGS__))*/ \
+/*MAKE_TYPE_AND_REFLECT(className##_vtable*/ \
+/*	FOR_EACH(MAKE_VTABLE_STRUCT_FIELD, , className VA_ARGS(__VA_ARGS__))*/ \
 /*)*/ \
 /* manually expanding it: */ \
-/*FOR_EACH(MAKE_VTABLE_STRUCT_FIELDTYPE, , classname##_vtable, __VA_ARGS__) */ \
-typedef struct classname##_vtable_s {\
-FOR_EACH(MAKE_VTABLE_STRUCT_FIELD2, , classname, __VA_ARGS__) \
-} classname##_vtable_t; \
-MAKE_TYPEINFO_WITH_TOSTRING(classname##_vtable_t, vtable_tostring)\
+/*FOR_EACH(MAKE_VTABLE_STRUCT_FIELDTYPE, , className##_vtable, __VA_ARGS__) */ \
+typedef struct className##_vtable_s {\
+FOR_EACH(MAKE_VTABLE_STRUCT_FIELD2, , className, __VA_ARGS__) \
+} className##_vtable_t; \
+MAKE_TYPEINFO_WITH_TOSTRING(className##_vtable_t, vtable_tostring)\
 \
-typedef classname##_vtable_t * classname##_vtable_p;\
-MAKE_TYPEINFO_WITH_TOSTRING(classname##_vtable_p, vtable_tostring)\
+typedef className##_vtable_t * className##_vtable_p;\
+MAKE_TYPEINFO_WITH_TOSTRING(className##_vtable_p, vtable_tostring)\
 \
-typedef classname##_vtable_t const * classname##_vtable_cp;\
-MAKE_TYPEINFO_WITH_TOSTRING(classname##_vtable_cp, vtable_tostring)\
+typedef className##_vtable_t const * className##_vtable_cp;\
+MAKE_TYPEINFO_WITH_TOSTRING(className##_vtable_cp, vtable_tostring)\
 \
-reflect_t classname##_vtable_fields[] = { \
-FOR_EACH(MAKE_VTABLE_STRUCT_REFL_FIELD, , classname, __VA_ARGS__) \
+FOR_EACH(MAKE_VTABLE_REFLECT_FIELD_ENTRY, , className, __VA_ARGS__) \
+\
+reflect_t const * className##_vtable_fields[] = { \
+FOR_EACH(MAKE_VTABLE_REFLECT_STRUCT_ENTRY, COMMA, className, __VA_ARGS__), \
 }; \
 \
 /* end MAKE_TYPE_AND_REFLECT call */ \
-classname##_vtable_t classname##_vtable = { \
-FOR_EACH(MAKE_VTABLE_OBJ_FIELD, , classname, __VA_ARGS__) \
+className##_vtable_t className##_vtable = { \
+FOR_EACH(MAKE_VTABLE_OBJ_FIELD, , className, __VA_ARGS__) \
 };
 
 

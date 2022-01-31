@@ -77,12 +77,12 @@ string_t * type##_tostring(\
 	}\
 	s = string_cat_move(s, newobj(string,_fmt,"%p={", obj));\
 	/* TODO HERE FOR_EACH over the reflect fields, and then call each member's _tostring() */\
-	reflect_t const * const endOfFields = type##_fields + numberof(type##_fields);\
-	for (reflect_t const * field = type##_fields; field < endOfFields; ++field) {\
+	reflect_t const ** const endOfFields = type##_fields + numberof(type##_fields);\
+	for (reflect_t const ** field = type##_fields; field < endOfFields; ++field) {\
 		if (field > type##_fields) {\
 			s = string_cat_move(s, newobj(string,_c,", "));\
 		}\
-		s = string_cat_move(s, newobj(string,_fmt,"%s=", field->name));\
+		s = string_cat_move(s, newobj(string,_fmt,"%s=", (*field)->name));\
 /*		s = string_cat_move(s, tostring(  ));*/\
 	}\
 	s = string_cat_move(s, newobj(string,_c,"}"));\
