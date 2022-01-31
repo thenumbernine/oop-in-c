@@ -66,24 +66,25 @@ void type##_destroy(type##_t * const obj) {}
 
 //TODO this reference "string_cat_move"
 //so be sure to include "string.h" if you use this.
-#define DEFAULT_TOSTRING(type)\
-string_t * type##_tostring(\
-	void const * const obj_\
+#define DEFAULT_TOSTRING(className)\
+string_t * className##_tostring(\
+	void const * const objv\
 ) {\
-	type##_t const * const obj = (type##_t const * const)obj_;\
-	string_t * s = newobj(string,_c,#type);\
-	if (!obj) {\
+	/* casting to our type will offset the pointer ... in C ... how do you not do this in C?  There is no reinterpret_cast<>() ... */\
+	/*className##_t const * const obj = (className##_t const * const)objv;*/\
+	string_t * s = newobj(string,_c,#className);\
+	if (!objv) {\
 		return string_cat_move(s, newobj(string,_c,"NULL"));\
 	}\
-	s = string_cat_move(s, newobj(string,_fmt,"%p={", obj));\
+	s = string_cat_move(s, newobj(string,_fmt,"(%p)={", objv));\
 	/* TODO HERE FOR_EACH over the reflect fields, and then call each member's _tostring() */\
-	reflect_t const ** const endOfFields = type##_fields + numberof(type##_fields);\
-	for (reflect_t const ** field = type##_fields; field < endOfFields; ++field) {\
-		if (field > type##_fields) {\
+	reflect_t const ** const endOfFields = className##_fields + numberof(className##_fields);\
+	for (reflect_t const ** field = className##_fields; field < endOfFields; ++field) {\
+		if (field > className##_fields) {\
 			s = string_cat_move(s, newobj(string,_c,", "));\
 		}\
 		s = string_cat_move(s, newobj(string,_fmt,"%s=", (*field)->name));\
-/*		s = string_cat_move(s, tostring(  ));*/\
+		s = string_cat_move(s, (*field)->type->tostring( (void const *)((char const*)objv + (*field)->offset) ));\
 	}\
 	s = string_cat_move(s, newobj(string,_c,"}"));\
 	return s;\

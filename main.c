@@ -72,7 +72,6 @@ void * threadStart(void * arg_) {
 		)
 	);
 #else
-
 	//TODO how to call a member method without referencing the object twice ...
 
 	call(
@@ -83,16 +82,16 @@ void * threadStart(void * arg_) {
 			"tostring_move"
 		)
 	)
-
 #endif
 
 	threadEnd_t * const ret = newobj(threadEnd,);
 	ret->somethingElse = 53;
-	{
-		string_t * s = threadEnd_tostring(ret);
-		printf("ending thread and returning %s\n", s->ptr);
-		deleteobj(s);
-	}
+	string_println_move(
+		string_cat_move(
+			newobj(string,_c,"ending thread and returning "),
+			threadEnd_tostring(ret)
+		)
+	);
 	return ret;
 }
 
@@ -104,7 +103,15 @@ int main() {
 		//pass this to pthread_create, expect it to free this once it's done
 		threadInit_t * const initArg = newobj(threadInit,);
 		initArg->something = 42;
-		string_println_move(string_cat_move(newobj(string,_c,"creating threadArg_t "), threadInit_tostring(initArg)));
+printf("initArg = %p\n", initArg);
+printf("&initArg->something = %p\n", &initArg->something);
+printf("threadInit_something_field.offset = %zu\n", threadInit_something_field.offset);
+		string_println_move(
+			string_cat_move(
+				newobj(string,_c,"creating threadInit_t "),
+				threadInit_tostring(initArg)
+			)
+		);
 		ret = thread_join_move(newobj(thread,, threadStart, (void*)initArg));
 	}
 

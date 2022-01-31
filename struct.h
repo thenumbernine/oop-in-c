@@ -57,12 +57,12 @@ MAKE_TYPEINFO(size_t)
 
 //used by all vtables for now, so I don't have to worry about vtable tostring generation yet 
 string_t * vtable_tostring(void const * obj);
+string_t * func_tostring(void const * obj);
 
 
 //info for each field in a struct
 typedef struct reflect_s {
 	size_t offset;
-	size_t size;
 	char * name;
 	typeinfo_t * type;	//pointer to the type info ... vtable? reflect? more?
 } reflect_t;
@@ -84,7 +84,6 @@ FOR_EACH(MAKE_STRUCT_FIELD, , , __VA_ARGS__) \
 #define MAKE_REFLECT_FIELD_ENTRY_I(fieldType, fieldName, className) \
 reflect_t className##_##fieldName##_field = { \
 	.offset = offsetof(className##_t, fieldName), \
-	.size = sizeof(fieldType), \
 	.name = #fieldName, \
 	.type = &fieldType##_type, /*hmm, but types can be invalid names, ex: pointers.  so, like the function pointers in the vtable, they will all have to be typedef'd.*/ \
 };
@@ -176,7 +175,10 @@ MAKE_TYPE_AND_REFLECT(<class>_vtable, ...)
 
 */
 
-#define MAKE_VTABLE_MEMBER_C_FUNC_TYPE_I(funcName, returnType, funcArgs, className) typedef returnType (className##_##funcName##_t) funcArgs;
+#define MAKE_VTABLE_MEMBER_C_FUNC_TYPE_I(funcName, returnType, funcArgs, className) \
+typedef returnType (className##_##funcName##_t) funcArgs; \
+MAKE_TYPEINFO_WITH_TOSTRING(className##_##funcName##_t, func_tostring)
+
 #define MAKE_VTABLE_MEMBER_C_FUNC_TYPE(tuple, className) APPLY(MAKE_VTABLE_MEMBER_C_FUNC_TYPE_I, EXPAND3 tuple, className)
 
 #define MAKE_VTABLE_C_FUNC_PROTOTYPE_I(funcName, returnType, funcArgs, className) className##_##funcName##_t className##_##funcName;
@@ -196,9 +198,8 @@ MAKE_TYPE_AND_REFLECT(<class>_vtable, ...)
 #define MAKE_VTABLE_REFLECT_FIELD_ENTRY_I(funcName, returnType, funcArgs, className) \
 reflect_t className##_vtable_t_##funcName##_field = { \
 	.offset = offsetof(className##_vtable_t, funcName), \
-	.size = sizeof(className##_##funcName##_t), \
 	.name = #funcName, \
-	/*.type = &fieldType##_type,*/ /*hmm, but types can be invalid names, ex: pointers*/ \
+	.type = &className##_##funcName##_t_type, /*hmm, but types can be invalid names, ex: pointers*/ \
 };
 #define MAKE_VTABLE_REFLECT_FIELD_ENTRY(tuple, className) APPLY(MAKE_VTABLE_REFLECT_FIELD_ENTRY_I, EXPAND3 tuple, className)
 
@@ -223,6 +224,7 @@ FOR_EACH(MAKE_VTABLE_C_FUNC_PROTOTYPE, , className, __VA_ARGS__) \
 typedef struct className##_vtable_s {\
 FOR_EACH(MAKE_VTABLE_STRUCT_FIELD2, , className, __VA_ARGS__) \
 } className##_vtable_t; \
+\
 MAKE_TYPEINFO_WITH_TOSTRING(className##_vtable_t, vtable_tostring)\
 \
 typedef className##_vtable_t * className##_vtable_p;\
