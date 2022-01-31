@@ -119,7 +119,7 @@ string_t * size_t_tostring(void const * obj) {
 
 //generic vtable
 string_t * vtable_tostring(void const * obj) {
-	return newobj(string,_fmt,"(vtable)0x%p", obj);
+	return newobj(string,_c,"(vtable)");
 }
 
 //generic function
