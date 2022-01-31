@@ -4,7 +4,7 @@
 #include "macros.h"	//FOR_EACH
 
 
-#if 0
+#if 1
 /*
 type info: holds rtti, vtable, etc stuff
 name = name of type/class
@@ -12,10 +12,20 @@ tostring = tostring method
 */
 typedef struct type_s {
 	char * name;
+	size_t size;
 } type_t;
 
+#define MAKE_TYPEINFO(tname)\
+type_t tname##_type = {.name = #tname, .size = sizeof(tname)};
 
-type_t size_t_type = {.name = "size_t"};
+typedef char * charp_t;
+MAKE_TYPEINFO(charp_t)
+
+typedef void * voidp_t;
+MAKE_TYPEINFO(voidp_t);
+
+MAKE_TYPEINFO(int)
+MAKE_TYPEINFO(size_t)
 #endif
 
 
@@ -24,7 +34,7 @@ typedef struct reflect_s {
 	size_t offset;
 	size_t size;
 	char * name;
-//	type_t * type;	//pointer to the type info ... vtable? reflect? more?
+	type_t * type;	//pointer to the type info ... vtable? reflect? more?
 } reflect_t;
 
 
@@ -52,7 +62,7 @@ FOR_EACH(MAKE_STRUCT_FIELD, , , __VA_ARGS__) \
 	.offset = offsetof(classname##_t, fieldName), \
 	.size = sizeof(fieldType), \
 	.name = #fieldName, \
-	/*.type = &fieldType##_type,*/ /*hmm, but types can be invalid names, ex: pointers*/ \
+	.type = &fieldType##_type, /*hmm, but types can be invalid names, ex: pointers.  so, like the function pointers in the vtable, they will all have to be typedef'd.*/ \
 },
 #define MAKE_REFLECT_FIELD(tuple, classname) APPLY(MAKE_REFLECT_FIELD_I, EXPAND3 tuple, classname)
 
@@ -167,9 +177,11 @@ MAKE_TYPE_AND_REFLECT(<class>_vtable, ...)
 #define MAKE_VTABLE_OBJ_FIELD(tuple, classname) APPLY(MAKE_VTABLE_OBJ_FIELD_I, EXPAND3 tuple, classname)
 
 #define MAKE_VTABLE(classname, ...) \
+\
 typedef struct classname##_s classname##_t; \
 FOR_EACH(MAKE_VTABLE_MEMBER_C_FUNC_TYPE, , classname, __VA_ARGS__) \
 FOR_EACH(MAKE_VTABLE_C_FUNC_PROTOTYPE, , classname, __VA_ARGS__) \
+\
 /* calling MAKE_TYPE_AND_REFLECT from MAKE_VTABLE -- having trouble: */ \
 /*MAKE_TYPE_AND_REFLECT(classname##_vtable*/ \
 /*	FOR_EACH(MAKE_VTABLE_STRUCT_FIELD, , classname VA_ARGS(__VA_ARGS__))*/ \
@@ -179,9 +191,17 @@ FOR_EACH(MAKE_VTABLE_C_FUNC_PROTOTYPE, , classname, __VA_ARGS__) \
 typedef struct classname##_vtable_s {\
 FOR_EACH(MAKE_VTABLE_STRUCT_FIELD2, , classname, __VA_ARGS__) \
 } classname##_vtable_t; \
+MAKE_TYPEINFO(classname##_vtable_t)\
+\
+typedef classname##_vtable_t * classname##_vtable_p;\
+MAKE_TYPEINFO(classname##_vtable_p)\
+typedef classname##_vtable_t const * classname##_vtable_cp;\
+MAKE_TYPEINFO(classname##_vtable_cp)\
+\
 reflect_t classname##_vtable_fields[] = { \
 FOR_EACH(MAKE_VTABLE_STRUCT_REFL_FIELD, , classname, __VA_ARGS__) \
 }; \
+\
 /* end MAKE_TYPE_AND_REFLECT call */ \
 classname##_vtable_t classname##_vtable = { \
 FOR_EACH(MAKE_VTABLE_OBJ_FIELD, , classname, __VA_ARGS__) \
@@ -198,7 +218,7 @@ MAKE_VTABLE(className, DEFER vtableFields) \
 MAKE_TYPE_AND_REFLECT( \
 	className, \
 	/* insert the vtable first: */\
-	(className##_vtable_t const *, v, 0) \
+	(className##_vtable_cp, v, 0) \
 	/* need this deferred for if structFields has zero args */\
 	DEFER_VA_ARGS structFields \
 )

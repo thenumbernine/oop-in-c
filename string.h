@@ -7,9 +7,10 @@
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 
+#define CLASS_string_super object
 #define CLASS_string_fields (\
 	(size_t, len, 1), /* len is the blob length (not including the \0 at the end) */\
-	(char *, ptr, 2)  /* ptr is len+1 in size for strlen strs */\
+	(charp_t, ptr, 2)  /* ptr is len+1 in size for strlen strs */\
 )
 #define CLASS_string_methods (\
 	(alloc, string_t *, ()),\

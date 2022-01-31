@@ -2,8 +2,11 @@
 
 #include <stdlib.h> //fopen, fclose, fread, fwrite, ftell, fseek
 
+typedef FILE * FILEp_t;
+MAKE_TYPEINFO(FILEp_t)
+
 #define CLASS_file_fields (\
-	(FILE*, fp, 1) /*TODO auto index and pass index into FOR_EACH*/ \
+	(FILEp_t, fp, 1) /*TODO auto index and pass index into FOR_EACH*/ \
 )
 #define CLASS_file_methods (\
 	(alloc, file_t *, ()),\
