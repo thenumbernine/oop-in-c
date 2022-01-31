@@ -8,8 +8,8 @@ typedef void *(*threadStart_t)(void *);
 MAKE_TYPEINFO(pthread_t)
 
 #define CLASS_thread_fields (\
-	(pthread_t, pthread, 1),\
-	(voidp_t, arg, 2)\
+	(pthread_t, pthread),\
+	(voidp_t, arg)\
 )
 #define CLASS_thread_methods (\
 	(alloc, thread_t *, ()),\

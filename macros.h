@@ -9,6 +9,7 @@
 
 #define ARG2_OF_2(a, b)	b
 
+#define EXPAND2(a,b)   a, b
 #define EXPAND3(a,b,c) a, b, c
 
 #define APPLY(macro, ...) macro(__VA_ARGS__)

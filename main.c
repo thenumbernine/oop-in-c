@@ -28,7 +28,7 @@ void * safealloc(size_t size) {
 //arg of our thread_t init
 
 #define CLASS_threadInit_fields (\
-	(int, something, 1)\
+	(int, something)\
 )
 #define CLASS_threadInit_methods (\
 	(alloc, threadInit_t *, ()),\
@@ -45,7 +45,7 @@ MAKE_MOVE(string_t *, threadInit, tostring)
 //return value for our thread_t routine
 
 #define CLASS_threadEnd_fields (\
-	(int, somethingElse, 1)\
+	(int, somethingElse)\
 )
 #define CLASS_threadEnd_methods (\
 	(alloc, threadEnd_t *, ()),\

@@ -6,7 +6,7 @@ typedef FILE * FILEp_t;
 MAKE_TYPEINFO(FILEp_t)
 
 #define CLASS_file_fields (\
-	(FILEp_t, fp, 1) /*TODO auto index and pass index into FOR_EACH*/ \
+	(FILEp_t, fp)\
 )
 #define CLASS_file_methods (\
 	(alloc, file_t *, ()),\

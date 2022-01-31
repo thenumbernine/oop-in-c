@@ -39,11 +39,11 @@ typedef struct reflect_s {
 
 
 //typedef <type> <className>_<fieldName>_fieldType;
-#define MAKE_FIELDTYPE_I2(ftype, fieldName, index, classname) typedef ftype classname##_##fieldName##_fieldType;
-#define MAKE_FIELDTYPE(tuple, classname) APPLY(MAKE_FIELDTYPE_I2, EXPAND3 tuple, classname)
+#define MAKE_FIELDTYPE_I2(ftype, fieldName, classname) typedef ftype classname##_##fieldName##_fieldType;
+#define MAKE_FIELDTYPE(tuple, classname) APPLY(MAKE_FIELDTYPE_I2, EXPAND2 tuple, classname)
 #define MAKE_FIELDTYPES(classname, ...) FOR_EACH(MAKE_FIELDTYPE, , classname, __VA_ARGS__)
 
-#define MAKE_STRUCT_FIELD_I(fieldType, fieldName, index) fieldType fieldName;
+#define MAKE_STRUCT_FIELD_I(fieldType, fieldName) fieldType fieldName;
 #define MAKE_STRUCT_FIELD(tuple, extra) MAKE_STRUCT_FIELD_I tuple
 
 #define MAKE_STRUCT(classname, ...) \
@@ -52,14 +52,14 @@ FOR_EACH(MAKE_STRUCT_FIELD, , , __VA_ARGS__) \
 } classname##_t;
 
 
-#define MAKE_REFLECT_FIELD_I(fieldType, fieldName, index, classname) \
+#define MAKE_REFLECT_FIELD_I(fieldType, fieldName, classname) \
 { \
 	.offset = offsetof(classname##_t, fieldName), \
 	.size = sizeof(fieldType), \
 	.name = #fieldName, \
 	.type = &fieldType##_type, /*hmm, but types can be invalid names, ex: pointers.  so, like the function pointers in the vtable, they will all have to be typedef'd.*/ \
 },
-#define MAKE_REFLECT_FIELD(tuple, classname) APPLY(MAKE_REFLECT_FIELD_I, EXPAND3 tuple, classname)
+#define MAKE_REFLECT_FIELD(tuple, classname) APPLY(MAKE_REFLECT_FIELD_I, EXPAND2 tuple, classname)
 
 #define MAKE_REFLECT(classname, ...) \
 reflect_t classname##_fields[] = { \
@@ -81,11 +81,11 @@ typedef struct string_s string_t;
 string_t * string_cat_move(string_t * a, string_t * b);
 void string_init_c(string_t * s, char const * c);
 void string_init_fmt(string_t * s, char const * fmt, ...);
-#define MAKE_DEFAULT_TOSTRING_FIELD_I(fieldType, fieldName, index, classname) \
+#define MAKE_DEFAULT_TOSTRING_FIELD_I(fieldType, fieldName, classname) \
 	s = string_cat_move(s, newobj(string,_c,", "));\
 	s = string_cat_move(s, newobj(string,_fmt,"%s=", field->name));\
 	s = string_cat_move(s, newobj(string,_c,"(value)")/*tostring(  )*/);
-#define MAKE_DEFAULT_TOSTRING_FIELD(tuple, classname) APPLY(MAKE_DEFAULT_TOSTRING_FIELD_I, EXPAND3 tuple, classname)
+#define MAKE_DEFAULT_TOSTRING_FIELD(tuple, classname) APPLY(MAKE_DEFAULT_TOSTRING_FIELD_I, EXPAND2 tuple, classname)
 #endif
 
 
@@ -151,8 +151,7 @@ MAKE_TYPE_AND_REFLECT(<class>_vtable, ...)
 //#define MAKE_VTABLE_STRUCT_FIELD_I(funcName, returnType, funcArgs, classname) ,(classname##_##funcName##_t*, funcName, 0)
 //#define MAKE_VTABLE_STRUCT_FIELD(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELD_I, EXPAND3 tuple, classname)
 
-//TODO I need to either add "index" as a 4th field to MAKE_VTABLE(...) *OR* add it as a var to the FOR_EACH macro's callback
-//#define MAKE_VTABLE_STRUCT_FIELDTYPE_I2(funcName, returnType, funcArgs, classname) typedef classname##_##funcName##_t * classname##_vtable_fieldType_##index;
+//#define MAKE_VTABLE_STRUCT_FIELDTYPE_I2(funcName, returnType, funcArgs, classname) typedef classname##_##funcName##_t * classname##_vtable_##funcName##_fieldType;
 //#define MAKE_VTABLE_STRUCT_FIELDTYPE(tuple, classname) APPLY(MAKE_VTABLE_STRUCT_FIELDTYPE_I2, EXPAND3 tuple, classname)
 
 //manually expanding MAKE_TYPE_AND_REFLECT into MAKE_VTABLE
@@ -182,7 +181,7 @@ FOR_EACH(MAKE_VTABLE_C_FUNC_PROTOTYPE, , classname, __VA_ARGS__) \
 /*	FOR_EACH(MAKE_VTABLE_STRUCT_FIELD, , classname VA_ARGS(__VA_ARGS__))*/ \
 /*)*/ \
 /* manually expanding it: */ \
-/*FOR_EACH(MAKE_VTABLE_STRUCT_FIELDTYPE, , classname##_vtable, __VA_ARGS__) */ /* this one is having trouble without either a manual index *or* a FOR_EACH callback automatic index */ \
+/*FOR_EACH(MAKE_VTABLE_STRUCT_FIELDTYPE, , classname##_vtable, __VA_ARGS__) */ \
 typedef struct classname##_vtable_s {\
 FOR_EACH(MAKE_VTABLE_STRUCT_FIELD2, , classname, __VA_ARGS__) \
 } classname##_vtable_t; \
@@ -213,7 +212,7 @@ MAKE_VTABLE(className, DEFER vtableFields) \
 MAKE_TYPE_AND_REFLECT( \
 	className, \
 	/* insert the vtable first: */\
-	(className##_vtable_cp, v, 0) \
+	(className##_vtable_cp, v) \
 	/* need this deferred for if structFields has zero args */\
 	DEFER_VA_ARGS structFields \
 )
@@ -223,7 +222,7 @@ MAKE_TYPE_AND_REFLECT( \
 call the class generation
 make sure you have the following defined:
 	
-	CLASS_<className>_fields = tuple of (type, name, index)
+	CLASS_<className>_fields = tuple of (type, name)
 	
 	CLASS_<className>_methods = tuple of (name, returnType, (args))
 */
