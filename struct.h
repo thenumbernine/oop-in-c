@@ -3,6 +3,8 @@
 #include <stddef.h>	//offsetof
 #include "macros.h"	//FOR_EACH
 
+//.tostring needs this:
+typedef struct string_s string_t;
 
 /*
 type info: holds rtti, vtable, etc stuff
@@ -12,10 +14,36 @@ tostring = tostring method
 typedef struct type_s {
 	char * name;
 	size_t size;
-} type_t;
+	string_t * (*tostring)(/*type_t*/void const * obj);		//I don't like the idea of casting, but here it has to be
+} typeinfo_t;
 
 #define MAKE_TYPEINFO(tname)\
-type_t tname##_type = {.name = #tname, .size = sizeof(tname)};
+typeinfo_t tname##_type = {\
+	.name = #tname,\
+	.size = sizeof(tname),\
+	.tostring = &tname##_tostring,\
+};
+
+#define MAKE_TYPEINFO_WITH_TOSTRING(tname, tostringFunc)\
+typeinfo_t tname##_type = {\
+	.name = #tname,\
+	.size = sizeof(tname),\
+	.tostring = &tostringFunc,\
+};
+
+// you can't use this until after string.h is included
+// TODO maybe this is ref instead of ptr
+// since it returns the obj addr, not the contents of a pointer 
+#define MAKE_TOSTRING_FOR_ADDR(name)\
+string_t * name##_tostring(void const * obj) {\
+	return newobj(string,_fmt,#name "(%p)", obj);\
+}
+
+//NOTICE bodies come at the end of string.h
+string_t * charp_t_tostring(void const * obj);
+string_t * voidp_t_tostring(void const * obj);
+string_t * int_tostring(void const * obj);
+string_t * size_t_tostring(void const * obj);
 
 typedef char * charp_t;
 MAKE_TYPEINFO(charp_t)
@@ -27,13 +55,16 @@ MAKE_TYPEINFO(int)
 MAKE_TYPEINFO(size_t)
 
 
+//used by all vtables for now, so I don't have to worry about vtable tostring generation yet 
+string_t * vtable_tostring(void const * obj);
+
 
 //info for each field in a struct
 typedef struct reflect_s {
 	size_t offset;
 	size_t size;
 	char * name;
-	type_t * type;	//pointer to the type info ... vtable? reflect? more?
+	typeinfo_t * type;	//pointer to the type info ... vtable? reflect? more?
 } reflect_t;
 
 
@@ -43,8 +74,7 @@ typedef struct reflect_s {
 #define MAKE_FIELDTYPE(tuple, classname) APPLY(MAKE_FIELDTYPE_I2, EXPAND2 tuple, classname)
 #define MAKE_FIELDTYPES(classname, ...) FOR_EACH(MAKE_FIELDTYPE, , classname, __VA_ARGS__)
 
-#define MAKE_STRUCT_FIELD_I(fieldType, fieldName) fieldType fieldName;
-#define MAKE_STRUCT_FIELD(tuple, extra) MAKE_STRUCT_FIELD_I tuple
+#define MAKE_STRUCT_FIELD(tuple, extra) UNPACK2 tuple;
 
 #define MAKE_STRUCT(classname, ...) \
 typedef struct classname##_s {\
@@ -185,12 +215,13 @@ FOR_EACH(MAKE_VTABLE_C_FUNC_PROTOTYPE, , classname, __VA_ARGS__) \
 typedef struct classname##_vtable_s {\
 FOR_EACH(MAKE_VTABLE_STRUCT_FIELD2, , classname, __VA_ARGS__) \
 } classname##_vtable_t; \
-MAKE_TYPEINFO(classname##_vtable_t)\
+MAKE_TYPEINFO_WITH_TOSTRING(classname##_vtable_t, vtable_tostring)\
 \
 typedef classname##_vtable_t * classname##_vtable_p;\
-MAKE_TYPEINFO(classname##_vtable_p)\
+MAKE_TYPEINFO_WITH_TOSTRING(classname##_vtable_p, vtable_tostring)\
+\
 typedef classname##_vtable_t const * classname##_vtable_cp;\
-MAKE_TYPEINFO(classname##_vtable_cp)\
+MAKE_TYPEINFO_WITH_TOSTRING(classname##_vtable_cp, vtable_tostring)\
 \
 reflect_t classname##_vtable_fields[] = { \
 FOR_EACH(MAKE_VTABLE_STRUCT_REFL_FIELD, , classname, __VA_ARGS__) \

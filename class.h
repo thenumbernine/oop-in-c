@@ -68,8 +68,9 @@ void type##_destroy(type##_t * const obj) {}
 //so be sure to include "string.h" if you use this.
 #define DEFAULT_TOSTRING(type)\
 string_t * type##_tostring(\
-	type##_t const * const obj\
+	void const * const obj_\
 ) {\
+	type##_t const * const obj = (type##_t const * const)obj_;\
 	string_t * s = newobj(string,_c,#type);\
 	if (!obj) {\
 		return string_cat_move(s, newobj(string,_c,"NULL"));\

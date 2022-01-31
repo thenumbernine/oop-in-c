@@ -3,6 +3,7 @@
 #include <stdlib.h> //fopen, fclose, fread, fwrite, ftell, fseek
 
 typedef FILE * FILEp_t;
+MAKE_TOSTRING_FOR_ADDR(FILEp_t)
 MAKE_TYPEINFO(FILEp_t)
 
 #define CLASS_file_fields (\

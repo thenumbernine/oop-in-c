@@ -35,7 +35,7 @@ void * safealloc(size_t size) {
 	(free, void, (threadInit_t *)),\
 	(destroy, void, (threadInit_t *)),\
 	(init, void, (threadInit_t *)),\
-	(tostring, string_t *, (threadInit_t const *))\
+	(tostring, string_t *, (void const *))\
 )
 CLASS(threadInit)
 MAKE_DEFAULTS(threadInit, ALLOC, FREE, DESTROY, INIT, TOSTRING)
@@ -52,7 +52,7 @@ MAKE_MOVE(string_t *, threadInit, tostring)
 	(free, void, (threadEnd_t *)),\
 	(destroy, void, (threadEnd_t *)),\
 	(init, void, (threadEnd_t *)),\
-	(tostring, string_t *, (threadEnd_t const *))\
+	(tostring, string_t *, (void const *))\
 )
 CLASS(threadEnd)
 MAKE_DEFAULTS(threadEnd, ALLOC, FREE, DESTROY, INIT, TOSTRING)

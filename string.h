@@ -98,3 +98,25 @@ void string_println(string_t * const s) {
 }
 
 MAKE_MOVE_VOID(string, println);	//string_println_move from string_println
+
+
+//headers at the top of struct.h
+string_t * charp_t_tostring(void const * obj) {
+	return newobj(string,_fmt,"%p", *(charp_t const*)obj);
+}
+
+string_t * voidp_t_tostring(void const * obj) {
+	return newobj(string,_fmt,"%p", *(voidp_t const*)obj);
+}
+
+string_t * int_tostring(void const * obj) {
+	return newobj(string,_fmt,"%d", *(int const*)obj);
+}
+
+string_t * size_t_tostring(void const * obj) {
+	return newobj(string,_fmt,"%z", *(size_t const*)obj);
+}
+
+string_t * vtable_tostring(void const * obj) {
+	return newobj(string,_c,"vtable");
+}

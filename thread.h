@@ -5,6 +5,7 @@
 
 typedef void *(*threadStart_t)(void *);
 
+MAKE_TOSTRING_FOR_ADDR(pthread_t)
 MAKE_TYPEINFO(pthread_t)
 
 #define CLASS_thread_fields (\
