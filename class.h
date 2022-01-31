@@ -39,10 +39,10 @@ void type##_destroy(type##_t * const obj) {}
 //can't forward va-args in C.  says in: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 // so to get around this, I'm using C lambda GCC specific trick:
 #define newobj(type, suffix, ...) ({\
-	type##_t * const obj = type##_vtable.alloc();\
-	obj->v = &type##_vtable;\
-	type##_vtable.init##suffix(obj VA_ARGS(__VA_ARGS__));\
-	obj;\
+	type##_t * const newobjptr = type##_vtable.alloc();\
+	newobjptr->v = &type##_vtable;\
+	type##_vtable.init##suffix(newobjptr VA_ARGS(__VA_ARGS__));\
+	newobjptr;\
 })
 
 //TODO is there some way to implement "newobj", *with* vararg forwarding,
@@ -76,15 +76,14 @@ string_t * className##_tostring(\
 	if (!objv) {\
 		return string_cat_move(s, newobj(string,_c,"NULL"));\
 	}\
-	s = string_cat_move(s, newobj(string,_fmt,"(%p)={", objv));\
-	/* TODO HERE FOR_EACH over the reflect fields, and then call each member's _tostring() */\
+	s = string_cat_move(s, newobj(string,_fmt,"(0x%p)={", objv));\
 	reflect_t const ** const endOfFields = className##_fields + numberof(className##_fields);\
 	for (reflect_t const ** field = className##_fields; field < endOfFields; ++field) {\
 		if (field > className##_fields) {\
 			s = string_cat_move(s, newobj(string,_c,", "));\
 		}\
 		s = string_cat_move(s, newobj(string,_fmt,"%s=", (*field)->name));\
-		s = string_cat_move(s, (*field)->type->tostring( (void const *)((char const*)objv + (*field)->offset) ));\
+		s = string_cat_move(s, (*field)->type->tostring((void const *)((char const*)objv + (*field)->offset)));\
 	}\
 	s = string_cat_move(s, newobj(string,_c,"}"));\
 	return s;\

@@ -74,7 +74,7 @@ typedef struct reflect_s {
 #define MAKE_FIELDTYPE(tuple, className) APPLY(MAKE_FIELDTYPE_I2, EXPAND2 tuple, className)
 #define MAKE_FIELDTYPES(className, ...) FOR_EACH(MAKE_FIELDTYPE, , className, __VA_ARGS__)
 
-#define MAKE_STRUCT_FIELD(tuple, extra) UNPACK2 tuple;
+#define MAKE_STRUCT_FIELD(tuple, extra) /*__attribute__((packed))*/ UNPACK2 tuple;
 
 #define MAKE_STRUCT(className, ...) \
 typedef struct className##_s {\
