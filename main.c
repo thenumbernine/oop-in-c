@@ -116,7 +116,7 @@ int main() {
 	);
 	ret = NULL;
 
-	printf("sizeof(string_fieldType_0)=%lu\n", sizeof(string_fieldType_0));
+	printf("sizeof(string_ptr_fieldType)=%lu\n", sizeof(string_ptr_fieldType));
 
 	return 0;
 }

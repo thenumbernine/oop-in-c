@@ -4,7 +4,6 @@
 #include "macros.h"	//FOR_EACH
 
 
-#if 1
 /*
 type info: holds rtti, vtable, etc stuff
 name = name of type/class
@@ -26,7 +25,7 @@ MAKE_TYPEINFO(voidp_t);
 
 MAKE_TYPEINFO(int)
 MAKE_TYPEINFO(size_t)
-#endif
+
 
 
 //info for each field in a struct
@@ -39,12 +38,8 @@ typedef struct reflect_s {
 
 
 
-//FOR_EACH can forward ... but you gotta CONCAT args to eval them
-//typedef <type> <name>_fieldType_<number>;
-
-
-
-#define MAKE_FIELDTYPE_I2(ftype, fieldName, index, classname) typedef ftype classname##_fieldType_##index;
+//typedef <type> <className>_<fieldName>_fieldType;
+#define MAKE_FIELDTYPE_I2(ftype, fieldName, index, classname) typedef ftype classname##_##fieldName##_fieldType;
 #define MAKE_FIELDTYPE(tuple, classname) APPLY(MAKE_FIELDTYPE_I2, EXPAND3 tuple, classname)
 #define MAKE_FIELDTYPES(classname, ...) FOR_EACH(MAKE_FIELDTYPE, , classname, __VA_ARGS__)
 
@@ -96,7 +91,7 @@ void string_init_fmt(string_t * s, char const * fmt, ...);
 
 #define MAKE_TYPE_AND_REFLECT(classname, ...) \
 \
-/* <class>_fieldType_<index>; */\
+/* <class>_<field>_fieldType; */\
 MAKE_FIELDTYPES(classname, __VA_ARGS__)\
 \
 /* the class itself: */\
