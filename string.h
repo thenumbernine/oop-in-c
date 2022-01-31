@@ -102,27 +102,27 @@ MAKE_MOVE_VOID(string, println);	//string_println_move from string_println
 
 //headers at the top of struct.h
 string_t * charp_t_tostring(void const * obj) {
-	return newobj(string,_fmt,"charp_t(0x%p)=%p", obj, *(charp_t const*)obj);
+	return newobj(string,_fmt,"charp_t(0x%p)", *(charp_t const*)obj);
 }
 
 string_t * voidp_t_tostring(void const * obj) {
-	return newobj(string,_fmt,"voidp_t(0x%p)=%p", obj, *(voidp_t const*)obj);
+	return newobj(string,_fmt,"voidp_t(0x%p)", *(voidp_t const*)obj);
 }
 
 string_t * int_tostring(void const * obj) {
-	return newobj(string,_fmt,"int(0x%p)=%d", obj, *(int const*)obj);
+	return newobj(string,_fmt,"int(%d)", *(int const*)obj);
 }
 
 string_t * size_t_tostring(void const * obj) {
-	return newobj(string,_fmt,"size_t(0x%p)=%zu", obj, *(size_t const*)obj);
+	return newobj(string,_fmt,"size_t(%zu)", *(size_t const*)obj);
 }
 
 //generic vtable
 string_t * vtable_tostring(void const * obj) {
-	return newobj(string,_c,"(vtable)");
+	return newobj(string,_c,"vtable");
 }
 
 //generic function
 string_t * func_tostring(void const * obj) {
-	return newobj(string,_fmt,"(func)0x%p", obj);
+	return newobj(string,_fmt,"func(0x%p)", obj);
 }

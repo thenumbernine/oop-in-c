@@ -103,9 +103,6 @@ int main() {
 		//pass this to pthread_create, expect it to free this once it's done
 		threadInit_t * const initArg = newobj(threadInit,);
 		initArg->something = 42;
-printf("initArg = %p\n", initArg);
-printf("&initArg->something = %p\n", &initArg->something);
-printf("threadInit_something_field.offset = %zu\n", threadInit_something_field.offset);
 		string_println_move(
 			string_cat_move(
 				newobj(string,_c,"creating threadInit_t "),
