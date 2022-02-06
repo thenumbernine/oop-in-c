@@ -14,6 +14,23 @@ CLASS(object)
 MAKE_DEFAULTS(object, ALLOC, FREE, DESTROY, INIT)
 
 
+/*
+so here's the alternative to using a GNU lambda for newobj
+but it can't forward vararg functions (like string_fmt)
+and casting doesn't work
+
+this assumes the vtable has 'alloc', 'free', 'destroy', 'init' (with no args) first
+... just like object_vtable_t does ...
+and this assumes the vtable's created object from alloc has a 'v' vtable as its first field
+*/
+object_t * newobj_func(object_vtable_t * const vtable) {
+	object_t * const newobjptr = vtable->alloc();
+	newobjptr->v->init(newobjptr);
+	return newobjptr;
+}
+
+
+
 //TODO a function + macro that calls
 //but if this is a macro then "obj" gets re-evaluated ...
 //and if this is a function then "func" needs extra qualifiers, and "obj" needs corret type casting

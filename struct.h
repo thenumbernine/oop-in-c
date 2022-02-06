@@ -2,7 +2,7 @@
 
 #include <stddef.h>	//offsetof
 #include "macros.h"	//FOR_EACH
-#include <stdint.h>	//int32_t
+#include <stdint.h>	//int32_t etc
 
 //.tostring needs this:
 typedef struct string_s string_t;
@@ -53,6 +53,8 @@ string_t * type##_tostring(void const * obj) {\
 }
 
 //NOTICE bodies come at the end of string.h
+typedef signed char byte;	//going by GL's definition of "byte" : signed, char, sizeof = 1
+MAKE_TYPEINFO(byte)
 MAKE_TYPEINFO(char)
 MAKE_TYPEINFO(short)
 MAKE_TYPEINFO(int)
@@ -71,8 +73,8 @@ MAKE_TYPEINFO(float)
 MAKE_TYPEINFO(double)
 typedef char * charp_t;
 MAKE_TYPEINFO(charp_t)
-//typedef byte * bytep_t;
-//MAKE_TYPEINFO(bytep_t)
+typedef byte * bytep_t;
+MAKE_TYPEINFO(bytep_t)
 typedef void * voidp_t;
 MAKE_TYPEINFO(voidp_t);
 

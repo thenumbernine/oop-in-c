@@ -39,6 +39,7 @@ void type##_destroy(type##_t * const obj) {}
 //can't forward va-args in C.  says in: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 // so to get around this, I'm using C lambda GCC specific trick:
 // NOTICE using the var with matching name of a parent scope var will mess up the parent scope var
+// another NOTICE ... 'newobj' using GNU lambda extension does not work in global scope!
 #define newobj(type, suffix, ...) ({\
 	type##_t * const newobjptr = type##_vtable.alloc();\
 	newobjptr->v = &type##_vtable;\

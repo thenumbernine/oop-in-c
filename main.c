@@ -15,6 +15,8 @@ void * safealloc(size_t size);
 #include "string.h"
 #include "thread.h"
 #include "file.h"
+#include "vector.h"
+#include "exception.h"
 
 void * safealloc(size_t size) {
 	void * const ptr = calloc(size, 1);
@@ -96,31 +98,52 @@ void * threadStart(void * arg_) {
 }
 
 int main() {
-	//int err = 0;
+	// any static init
+	staticInit_exceptionJmpBufStack();
 
-	void * ret = NULL;
-	{
-		//pass this to pthread_create, expect it to free this once it's done
-		threadInit_t * const initArg = newobj(threadInit,);
-		initArg->something = 42;
+	TRY {
+		//TODO fix catch first before using this
+		//THROW((object_t*)newobj(string,_fmt,"throwing an exception"));
+		THROW(NULL);
+
+		void * ret = NULL;
+		{
+			//pass this to pthread_create, expect it to free this once it's done
+			threadInit_t * const initArg = newobj(threadInit,);
+			initArg->something = 42;
+			string_println_move(
+				string_cat_move(
+					newobj(string,_c,"creating threadInit_t "),
+					threadInit_tostring(initArg)
+				)
+			);
+			ret = thread_join_move(newobj(thread,, threadStart, (void*)initArg));
+		}
+
 		string_println_move(
 			string_cat_move(
-				newobj(string,_c,"creating threadInit_t "),
-				threadInit_tostring(initArg)
+				newobj(string,_c,"pthread_join succeeded with ret="),
+				threadEnd_tostring_move((threadEnd_t*)ret)
 			)
 		);
-		ret = thread_join_move(newobj(thread,, threadStart, (void*)initArg));
-	}
+		ret = NULL;
 
-	string_println_move(
-		string_cat_move(
-			newobj(string,_c,"pthread_join succeeded with ret="),
-			threadEnd_tostring_move((threadEnd_t*)ret)
-		)
-	);
-	ret = NULL;
+		printf("sizeof(string_ptr_fieldType)=%lu\n", sizeof(string_ptr_fieldType));
 
-	printf("sizeof(string_ptr_fieldType)=%lu\n", sizeof(string_ptr_fieldType));
+		//vector_t test
+		vector_t * const v = newobj(vector,_ptr,sizeof(int), NULL, 0);
+		for (int i = 3; i < 100; ++i) {
+			v->v->push_back(v, (void*)&i);
+		}
+		for (size_t i = 0; i < v->size; ++i) {
+			printf("%d ", ((int*)v->data)[i]);
+		}
+		printf("\n");
+		deleteobj(v);
+	} CATCH(e) {
+		printf("caught exception type #1\n");
+	} ENDTRY
 
+	staticDestroy_exceptionJmpBufStack();
 	return 0;
 }

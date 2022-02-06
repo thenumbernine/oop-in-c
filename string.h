@@ -100,6 +100,7 @@ void string_println(string_t * const s) {
 MAKE_MOVE_VOID(string, println);	//string_println_move from string_println
 
 //headers at the top of struct.h
+MAKE_TOSTRING_FOR_FMT(byte, "%c")
 MAKE_TOSTRING_FOR_FMT(char, "%c")
 MAKE_TOSTRING_FOR_FMT(short, "%hd")
 MAKE_TOSTRING_FOR_FMT(int, "%d")
@@ -118,7 +119,7 @@ MAKE_TOSTRING_FOR_FMT(float, "%d")
 MAKE_TOSTRING_FOR_FMT(double, "%d")
 
 MAKE_TOSTRING_FOR_PTRTYPE(charp_t)
-//MAKE_TOSTRING_FOR_PTRTYPE(bytep_t)
+MAKE_TOSTRING_FOR_PTRTYPE(bytep_t)
 MAKE_TOSTRING_FOR_PTRTYPE(voidp_t)
 
 MAKE_TOSTRING_FOR_ADDR(vtable)	//generic vtable

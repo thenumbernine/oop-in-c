@@ -1,6 +1,6 @@
 #CC = clang
 CC = gcc
-CFLAGS = -Wall 
+CFLAGS = -g -O0 -Wall 
 #CFLAGS += -std=c89
 #CFLAGS += -std=c18
 #CFLAGS += -std=gnu18

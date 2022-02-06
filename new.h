@@ -5,6 +5,8 @@
 
 
 #define newprim(x)		(x*)safealloc(sizeof(x))
+
+// TODO 'newprimarray'
 #define newarray(x,len)	(x*)safealloc(sizeof(x) * len)
 
 //technically not the "delete" operator
