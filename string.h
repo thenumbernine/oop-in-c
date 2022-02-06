@@ -7,7 +7,7 @@
 
 //combo of c and c++ strs: \0 terms and non-incl .len field at the beginning
 
-#define CLASS_string_super object
+//#define CLASS_string_super object
 #define CLASS_string_fields (\
 	(size_t, len), /* len is the blob length (not including the \0 at the end) */\
 	(charp_t, ptr)  /* ptr is len+1 in size for strlen strs */\
@@ -99,30 +99,27 @@ void string_println(string_t * const s) {
 
 MAKE_MOVE_VOID(string, println);	//string_println_move from string_println
 
-
 //headers at the top of struct.h
-string_t * charp_t_tostring(void const * obj) {
-	return newobj(string,_fmt,"charp_t(0x%p)", *(charp_t const*)obj);
-}
+MAKE_TOSTRING_FOR_FMT(char, "%c")
+MAKE_TOSTRING_FOR_FMT(short, "%hd")
+MAKE_TOSTRING_FOR_FMT(int, "%d")
+MAKE_TOSTRING_FOR_FMT(size_t, "%zu")
+MAKE_TOSTRING_FOR_FMT(intptr_t, "%zd")	//PRIxPTR
+MAKE_TOSTRING_FOR_FMT(uintptr_t, "%zu")	//PRIxPTR
+MAKE_TOSTRING_FOR_FMT(int8_t, "%hhd")
+MAKE_TOSTRING_FOR_FMT(uint8_t, "%hhu")
+MAKE_TOSTRING_FOR_FMT(int16_t, "%hd")
+MAKE_TOSTRING_FOR_FMT(uint16_t, "%hu")
+MAKE_TOSTRING_FOR_FMT(int32_t, "%d")
+MAKE_TOSTRING_FOR_FMT(uint32_t, "%u")
+MAKE_TOSTRING_FOR_FMT(int64_t, "%ld")
+MAKE_TOSTRING_FOR_FMT(uint64_t, "%lu")
+MAKE_TOSTRING_FOR_FMT(float, "%d")
+MAKE_TOSTRING_FOR_FMT(double, "%d")
 
-string_t * voidp_t_tostring(void const * obj) {
-	return newobj(string,_fmt,"voidp_t(0x%p)", *(voidp_t const*)obj);
-}
+MAKE_TOSTRING_FOR_PTRTYPE(charp_t)
+//MAKE_TOSTRING_FOR_PTRTYPE(bytep_t)
+MAKE_TOSTRING_FOR_PTRTYPE(voidp_t)
 
-string_t * int_tostring(void const * obj) {
-	return newobj(string,_fmt,"int(%d)", *(int const*)obj);
-}
-
-string_t * size_t_tostring(void const * obj) {
-	return newobj(string,_fmt,"size_t(%zu)", *(size_t const*)obj);
-}
-
-//generic vtable
-string_t * vtable_tostring(void const * obj) {
-	return newobj(string,_c,"vtable");
-}
-
-//generic function
-string_t * func_tostring(void const * obj) {
-	return newobj(string,_fmt,"func(0x%p)", obj);
-}
+MAKE_TOSTRING_FOR_ADDR(vtable)	//generic vtable
+MAKE_TOSTRING_FOR_ADDR(func)	//generic member function type

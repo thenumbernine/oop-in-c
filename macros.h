@@ -3,6 +3,7 @@
 
 #define COMMA ,		//for when a macro argument needs to be a comma
 
+//technically is this an "unpack" since it removes the commas?
 #define DEFER(...)				__VA_ARGS__
 
 #define UNPACK2(a, b)	a b

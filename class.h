@@ -38,6 +38,7 @@ void type##_destroy(type##_t * const obj) {}
 //type_t * newobj(suffix, ...) => calls type_alloc, type_init_suffix(...) 
 //can't forward va-args in C.  says in: https://codereview.stackexchange.com/questions/156504/implementing-printf-to-a-string-by-calling-vsnprintf-twice
 // so to get around this, I'm using C lambda GCC specific trick:
+// NOTICE using the var with matching name of a parent scope var will mess up the parent scope var
 #define newobj(type, suffix, ...) ({\
 	type##_t * const newobjptr = type##_vtable.alloc();\
 	newobjptr->v = &type##_vtable;\
@@ -70,8 +71,6 @@ void type##_destroy(type##_t * const obj) {}
 string_t * className##_tostring(\
 	void const * const objv\
 ) {\
-	/* casting to our type will offset the pointer ... in C ... how do you not do this in C?  There is no reinterpret_cast<>() ... */\
-	/*className##_t const * const obj = (className##_t const * const)objv;*/\
 	string_t * s = newobj(string,_c,#className);\
 	if (!objv) {\
 		return string_cat_move(s, newobj(string,_c,"NULL"));\

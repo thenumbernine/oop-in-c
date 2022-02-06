@@ -2,6 +2,7 @@
 
 #include <stddef.h>	//offsetof
 #include "macros.h"	//FOR_EACH
+#include <stdint.h>	//int32_t
 
 //.tostring needs this:
 typedef struct string_s string_t;
@@ -18,6 +19,7 @@ typedef struct type_s {
 } typeinfo_t;
 
 #define MAKE_TYPEINFO(tname)\
+string_t * tname##_tostring(void const * obj);\
 typeinfo_t tname##_type = {\
 	.name = #tname,\
 	.size = sizeof(tname),\
@@ -25,6 +27,7 @@ typeinfo_t tname##_type = {\
 };
 
 #define MAKE_TYPEINFO_WITH_TOSTRING(tname, tostringFunc)\
+string_t * tostringFunc(void const * obj);\
 typeinfo_t tname##_type = {\
 	.name = #tname,\
 	.size = sizeof(tname),\
@@ -36,24 +39,42 @@ typeinfo_t tname##_type = {\
 // since it returns the obj addr, not the contents of a pointer 
 #define MAKE_TOSTRING_FOR_ADDR(name)\
 string_t * name##_tostring(void const * obj) {\
-	return newobj(string,_fmt,#name "(%p)", obj);\
+	return newobj(string,_fmt, #name "(%p)", obj);\
+}
+
+#define MAKE_TOSTRING_FOR_PTRTYPE(type)\
+string_t * type##_tostring(void const * obj) {\
+	return newobj(string,_fmt, #type "(%p)", *(type const *)obj);\
+}
+
+#define MAKE_TOSTRING_FOR_FMT(type, fmt)\
+string_t * type##_tostring(void const * obj) {\
+	return newobj(string,_fmt, #type "(" fmt ")", *(type const *)obj);\
 }
 
 //NOTICE bodies come at the end of string.h
-string_t * charp_t_tostring(void const * obj);
-string_t * voidp_t_tostring(void const * obj);
-string_t * int_tostring(void const * obj);
-string_t * size_t_tostring(void const * obj);
-
-typedef char * charp_t;
-MAKE_TYPEINFO(charp_t)
-
-typedef void * voidp_t;
-MAKE_TYPEINFO(voidp_t);
-
+MAKE_TYPEINFO(char)
+MAKE_TYPEINFO(short)
 MAKE_TYPEINFO(int)
 MAKE_TYPEINFO(size_t)
-
+MAKE_TYPEINFO(intptr_t)
+MAKE_TYPEINFO(uintptr_t)
+MAKE_TYPEINFO(int8_t)
+MAKE_TYPEINFO(uint8_t)
+MAKE_TYPEINFO(int16_t)
+MAKE_TYPEINFO(uint16_t)
+MAKE_TYPEINFO(int32_t)
+MAKE_TYPEINFO(uint32_t)
+MAKE_TYPEINFO(int64_t)
+MAKE_TYPEINFO(uint64_t)
+MAKE_TYPEINFO(float)
+MAKE_TYPEINFO(double)
+typedef char * charp_t;
+MAKE_TYPEINFO(charp_t)
+//typedef byte * bytep_t;
+//MAKE_TYPEINFO(bytep_t)
+typedef void * voidp_t;
+MAKE_TYPEINFO(voidp_t);
 
 //used by all vtables for now, so I don't have to worry about vtable tostring generation yet 
 string_t * vtable_tostring(void const * obj);
@@ -270,4 +291,9 @@ make sure you have the following defined:
 	CLASS_<className>_methods = tuple of (name, returnType, (args))
 */
 #define CLASS(className) \
-GENERATE_CLASS(className, CLASS_##className##_fields, CLASS_##className##_methods)
+GENERATE_CLASS(\
+	className,\
+	CLASS_##className##_fields,\
+	/*CONCAT(CONCAT(CLASS_,CLASS_##className##_super)_methods)*/\
+	CLASS_##className##_methods\
+)

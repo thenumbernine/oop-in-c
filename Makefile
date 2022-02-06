@@ -2,6 +2,8 @@
 CC = gcc
 CFLAGS = -Wall 
 #CFLAGS += -std=c89
+#CFLAGS += -std=c18
+#CFLAGS += -std=gnu18
 
 .PHONY: all
 all: main
