@@ -98,6 +98,7 @@ byte * vector_data(vector_t const * const v) {
 	return v->data;
 }
 
+//TODO use realloc()
 void vector_reserve(vector_t * const v, size_t newCapacity) {
 	if (newCapacity <= v->capacity) return;
 	newCapacity = ((newCapacity >> 5) + 1) << 5;	// round up

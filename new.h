@@ -3,7 +3,7 @@
 
 #include <stdlib.h>	//free
 
-
+//TODO separate new for heap / safealloc (malloc) from new for stack / alloca
 #define newprim(x)		(x*)safealloc(sizeof(x))
 
 // TODO 'newprimarray'
@@ -11,6 +11,4 @@
 
 //technically not the "delete" operator
 // because it doesn't call the dtor
-void deleteprim(void * ptr) {
-	if (ptr) free(ptr);
-}
+#define deleteprim free

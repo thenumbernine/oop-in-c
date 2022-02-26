@@ -47,6 +47,17 @@ void type##_destroy(type##_t * const obj) {}
 	newobjptr;\
 })
 
+//c++ equiv of stack-allocation (I think)
+// this will depend on gcc extension lambdas like 'newobj' does
+// it will also use the builtin stack allocator, so I guess :new is bypassed, which I suppose is the stack object behavior in C++ as well, right?
+// This is especially for use in conjunction with THROW, but can be used elsewhere (why not?)
+#define newstack(type, suffix, ...) ({\
+	type##_t * const newobjptr = (type##_t *)alloca(sizeof(type##_t));\
+	newobjptr->v = &type##_vtable;\
+	type##_vtable.init##suffix(newobjptr VA_ARGS(__VA_ARGS__));\
+	newobjptr;\
+})
+
 //TODO is there some way to implement "newobj", *with* vararg forwarding,
 // and still not depend on GCC specific lambdas?
 #if 0
