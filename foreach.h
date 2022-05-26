@@ -1,0 +1,28 @@
+#pragma once
+
+#define FOR_EACH_1(what, between, extra, x, ...) what(x, extra)
+#define FOR_EACH_2(what, between, extra, x, ...) what(x, extra) between FOR_EACH_1(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_3(what, between, extra, x, ...) what(x, extra) between FOR_EACH_2(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_4(what, between, extra, x, ...) what(x, extra) between FOR_EACH_3(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_5(what, between, extra, x, ...) what(x, extra) between FOR_EACH_4(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_6(what, between, extra, x, ...) what(x, extra) between FOR_EACH_5(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_7(what, between, extra, x, ...) what(x, extra) between FOR_EACH_6(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_8(what, between, extra, x, ...) what(x, extra) between FOR_EACH_7(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_9(what, between, extra, x, ...) what(x, extra) between FOR_EACH_8(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_10(what, between, extra, x, ...) what(x, extra) between FOR_EACH_9(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_11(what, between, extra, x, ...) what(x, extra) between FOR_EACH_10(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_12(what, between, extra, x, ...) what(x, extra) between FOR_EACH_11(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_13(what, between, extra, x, ...) what(x, extra) between FOR_EACH_12(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_14(what, between, extra, x, ...) what(x, extra) between FOR_EACH_13(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_15(what, between, extra, x, ...) what(x, extra) between FOR_EACH_14(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_16(what, between, extra, x, ...) what(x, extra) between FOR_EACH_15(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_17(what, between, extra, x, ...) what(x, extra) between FOR_EACH_16(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_18(what, between, extra, x, ...) what(x, extra) between FOR_EACH_17(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_19(what, between, extra, x, ...) what(x, extra) between FOR_EACH_18(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_20(what, between, extra, x, ...) what(x, extra) between FOR_EACH_19(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH_NARG(...) FOR_EACH_NARG_(__VA_ARGS__, FOR_EACH_RSEQ_N())
+#define FOR_EACH_NARG_(...) FOR_EACH_ARG_N(__VA_ARGS__)
+#define FOR_EACH_ARG_N(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, N, ...) N
+#define FOR_EACH_RSEQ_N() 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0
+#define FOR_EACH_(N, what, between, extra, ...) CONCAT(FOR_EACH_, N)(what, DEFER(between), DEFER(extra), __VA_ARGS__)
+#define FOR_EACH(what, between, extra, ...) FOR_EACH_(FOR_EACH_NARG(__VA_ARGS__), what, DEFER(between), DEFER(extra), __VA_ARGS__)
