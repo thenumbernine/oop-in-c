@@ -6,7 +6,7 @@
 
 local n = ... and tonumber((...)) or 20
 
-require 'ext.file'['foreach.h'] = require 'template'([[
+require 'ext.path'['foreach.h'] = require 'template'([[
 #pragma once
 
 <?
