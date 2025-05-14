@@ -102,10 +102,6 @@ int main() {
 	staticInit_exceptionJmpBufStack();
 
 	TRY {
-		//TODO fix catch first before using this
-		//THROW((object_t*)newobj(string,_fmt,"throwing an exception"));
-		THROW(NULL);
-
 		void * ret = NULL;
 		{
 			//pass this to pthread_create, expect it to free this once it's done
@@ -135,11 +131,17 @@ int main() {
 		for (int i = 3; i < 100; ++i) {
 			v->v->push_back(v, (void*)&i);
 		}
+		printf("vector contents:\n");
 		for (size_t i = 0; i < v->size; ++i) {
 			printf("%d ", ((int*)v->data)[i]);
 		}
 		printf("\n");
 		deleteobj(v);
+
+		//TODO fix catch first before using this
+		THROW((object_t*)newobj(string,_fmt,"throwing an exception"));
+		//THROW(NULL);
+
 	} CATCH(e) {
 		printf("caught exception type #1\n");
 	} ENDTRY

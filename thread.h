@@ -1,7 +1,9 @@
 #pragma once
 
 #include <pthread.h>
+#if 0	// clang/osx equivalent?
 #include <sys/sysinfo.h>	//get_nprocs_conf
+#endif
 
 typedef void *(*threadStart_t)(void *);
 
@@ -47,6 +49,7 @@ void thread_init(
 		ASSERTZERO(pthread_attr_setstacksize, &attr, stackSize);
 	}
 
+#if 0	// clang/osx equivalent?
 	int numCores = get_nprocs_conf();
 	//printf("number of cores: %d\n", numCores);	// 16
 	//printf("sizeof(cpu_set_t) = %lu\n", sizeof(cpu_set_t));	// 128
@@ -65,6 +68,7 @@ void thread_init(
 		ASSERTZERO(pthread_attr_setaffinity_np, &attr, cpuAllocSize, cpusetp);
 		CPU_FREE(cpusetp);
 	}
+#endif
 
 	ASSERTZERO(pthread_create, &t->pthread, &attr, threadStart, (void*)t);
    	ASSERTZERO(pthread_attr_destroy, &attr);

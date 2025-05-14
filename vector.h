@@ -1,6 +1,10 @@
 #pragma once
 
 //TODO how to do templates ...
+
+// which is cleaner design?
+#if 0
+// specifying fields and methods as macros?
 #define CLASS_vector_fields (\
 	(size_t, capacity),\
 	(bytep_t, data),\
@@ -23,6 +27,37 @@
 	(back, bytep_t, (vector_t *))\
 )
 CLASS(vector)
+
+#else
+// or specifying them as arguments?
+GENERATE_CLASS(
+	/* name */
+	vector,
+	/* fields */
+	(
+		(size_t, capacity),
+		(bytep_t, data),
+		(size_t, size),
+		(size_t, elemSize)
+	),
+	/* methods */
+	(
+		(alloc, vector_t *, ()),
+		(free, void, (vector_t *)),
+		(destroy, void, (vector_t *)),
+		(init, void, (vector_t *)),
+		(init_ptr, void, (vector_t *, size_t elemSize, void * data, size_t size)),
+		(push_back, void, (vector_t *, byte const * const what)),
+		(pop_back, void, (vector_t *, byte * const where)),
+		(resize, void, (vector_t *, size_t newSize)),
+		(size, size_t, (vector_t const *)),/* getter */
+		(capacity, size_t, (vector_t const *)),/* getter */
+		(data, bytep_t, (vector_t const *)),/* getter */
+		(reserve, void, (vector_t *, size_t newCapacity)),
+		(back, bytep_t, (vector_t *))
+	)
+)
+#endif
 
 void vector_destroy(vector_t * const v) {
 	if (!v) return;
